@@ -13,9 +13,16 @@ Sous-modules :
 - qtqt.core     : Logique centrale (contrôleur, threads, settings)
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
+__author__ = "Alexis Derycke"
+__email__ = "alexis.derycke@hotmail.com"
+__description__ = "package python pour traiter et afficher les résutats du logiciel QTQt"
+__url__ = "https://https://github.com/ADerycke/qtqt_displayer"
+__license__ = "CC0 1.0"
+__copyright__ = "Copyright 2025, Alexis Derycke"
 
-# Import public API
+
+# Import internal API
 from . import data
 from . import plotting
 from . import core
