@@ -1,0 +1,38 @@
+qtqt_displayer/
+│── main.py                 # Point d'entrée de l'application GUI
+│── main_no_interface.py    # Traitement complet hors GUI
+│── requirements.txt        # Dépendances (PySide6, matplotlib, numpy, pandas, etc.)
+│── README.md               # Documentation du projet
+│
+├── displayer/                   # Package principal
+│   │── __init__.py
+│   │
+│   ├── ui/                 # Gestion de l'interface (Qt)
+│   │   │── main_window.py      # QMainWindow (plusieurs)
+│   │   │── dialogs.py          # QWidget secondaire (boite erreur, choisir couleur, etc.)
+│   │   └── resources/          # help files, Icônes...
+│   │
+│   ├── data/               # Parsing et manipulation des fichiers QTQt
+│   │   │── __init__.py
+│   │   │── datatypes.py        # Class du type de donnee
+│   │   │── parser.py           # Fonctions extract_* 
+│   │   └── utils.py            # Fonctions utilitaires
+│   │
+│   ├── plotting/           # Fonctions de tracés matplotlib
+│   │   │── __init__.py
+│   │   │── plotter.py         # Fonction de génération des figures + injection des data dans les graphs
+│   │   └── utils.py           # Fonctions utilitaires
+│   │
+│   └── core/               # Logique de l'application
+│       │── __init__.py
+│       │── controller.py     # Cerveau GUI + QThread secondaire
+│       │── saver.py          # fonction de navigation / interaction machine (GUI optionnel)
+│       └── workers.py        # fonction utilitaire (no GUI)
+│
+├── tests/                  # Tests unitaires et d’intégration
+│   │── test_core.py
+│   │── test_data.py
+│   └── test_ui.py
+│
+└── examples/               # Jeux de données ou fichiers QTQt pour tester
+    └── demo_data.txt
