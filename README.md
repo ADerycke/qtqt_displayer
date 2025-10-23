@@ -82,17 +82,6 @@ This file contain all the parser / plotting function without GUI aspect, so you 
 
 ---
 
-## 🧠 Requirements
-
-Main dependencies (see `requirements.txt` for full list):
-
-* `PySide6` (GUI only)
-* `matplotlib`
-* `numpy`
-* `pandas`
-
----
-
 ## 💡 Development Notes
 
 * The codebase is organized into independent modules (`data`, `plotting`, `ui`, `core`) to facilitate maintenance and extension.
