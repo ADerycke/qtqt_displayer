@@ -115,7 +115,7 @@ This project is released under the **CC Licence** .
 
 ## 👥 Authors & Acknowledgments
 
-Developed by [Alexis Derycke].
+Developed by **Alexis Derycke**.
 Special thanks to the QTQt software authors, Kerry Gallagher and the thermochronology community.
 
 ---
