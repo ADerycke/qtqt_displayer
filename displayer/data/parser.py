@@ -156,15 +156,15 @@ def get_inversion_info(data):
     
     info_list['Acceptance FT'] = utils.def_valeur(info_8.ratio_accep.iloc[5],'')
     info_list['Acceptance He'] = utils.def_valeur(info_8.ratio_accep.iloc[6],'')
-    info_list['Acceptance Vitr'] = utils.def_valeur(info_8.ratio_accep.iloc[7],'')
+    info_list['Acceptance VR'] = utils.def_valeur(info_8.ratio_accep.iloc[7],'')
     
     if info_list['Acceptance FT'] == '': info_list['FT resample'] = 'no'
     if info_list['Acceptance He'] == '': info_list['He resample'] = 'no'
-    if info_list['Acceptance Vitr'] == '': info_list['VR resample'] = 'no'
+    if info_list['Acceptance VR'] == '': info_list['VR resample'] = 'no'
     
     if info_list['FT resample'] == 'no': info_list['Acceptance FT'] = ''
     if info_list['He resample'] == 'no': info_list['Acceptance He'] = ''
-    if info_list['VR resample'] == 'no': info_list['Acceptance Vitr'] = ''
+    if info_list['VR resample'] == 'no': info_list['Acceptance VR'] = ''
         
     return info_list
 

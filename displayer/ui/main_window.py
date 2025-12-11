@@ -7,12 +7,13 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Signal
 
+from matplotlib.pyplot import figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.backends.backend_qt import NavigationToolbar2QT
 
 
 # === Import logique interne ===
-from displayer.plotting import plotter
+from displayer.plotting.customfig import InverseFig, ResampleFig
 
 # == Class MainWindow ==
 class MainWindow(QMainWindow):
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # == Figure initialisation
-        self.displayer_fig = plotter.built_fig()
+        self.displayer_fig = figure(FigureClass=InverseFig)
         self.helping_menu_init()
 
         # == Widgets
@@ -78,14 +79,24 @@ class MainWindow(QMainWindow):
     def send_inversion_parameters(self):
         inversion_param = {}
         
-        if self.combobox_saveformat.currentText() != 'no save':
-            inversion_param['save_format'] = self.combobox_saveformat.currentText()
-        else:
-            inversion_param['save_format'] = ''
-        if self.combobox_savedirect.currentText() == 'automatic':
-            inversion_param['auto_save_path'] = True
-        else:
-            inversion_param['auto_save_path'] = False
+        inversion_param['auto_save_path'] = self.combobox_savedirect.itemData(self.combobox_savedirect.currentIndex())
+        inversion_param['grp_export'] = False
+        inversion_param['tab_format'] = '.xlsx'
+        inversion_param['fig_format'] = self.combobox_saveformat.itemData(self.combobox_saveformat.currentIndex())
+
+
+        inversion_param['chemin'] = self.combobox_envelop.itemData(self.combobox_envelop.currentIndex())
+        inversion_param['colormap'] = self.combobox_colormap.itemData(self.combobox_colormap.currentIndex())
+        inversion_param['classement']=self.combobox_order.currentText()
+        inversion_param['hist_color'] = self.combobox_color.currentText()
+        inversion_param['model'] = self.combobox_prediction.currentText()
+        
+        inversion_param['gradiant'] = float(self.editbox_gradient.text())
+        
+        inversion_param['niveau'] = self.combobox_timescale.currentText()
+        
+        inversion_param['vertical_profile'] = self.combobox_vertical.currentText()
+        
         if self.editbox_minTime.text() != '':
             inversion_param['time_min']=float(self.editbox_minTime.text())
         else:
@@ -102,32 +113,23 @@ class MainWindow(QMainWindow):
             inversion_param['temp_max']=float(self.editbox_maxTemp.text())
         else:
             inversion_param['temp_max']=0
-            
-        inversion_param['chemin'] = self.combobox_envelop.itemData(self.combobox_envelop.currentIndex())
-        inversion_param['colormap'] = self.combobox_colormap.itemData(self.combobox_colormap.currentIndex())
-        inversion_param['classement']=self.combobox_order.currentText()
-        inversion_param['hist_color'] = self.combobox_color.currentText()
-        inversion_param['model'] = self.combobox_prediction.currentText()
-        inversion_param['gradiant'] = float(self.editbox_gradient.text())
-        inversion_param['niveau'] = self.combobox_timescale.currentText()
-        inversion_param['vertical_profile'] = self.combobox_vertical.currentText()
         
         return inversion_param
 
 
     def on_canvas_click(self, event):
         if event.button == 3:  # clic droit
-            if event.inaxes == self.displayer_fig.plot_age:
+            if event.inaxes == self.displayer_fig.subplot_age:
                 self.menu_age.exec(self.mapToGlobal(event.guiEvent.pos()))
-            elif event.inaxes == self.displayer_fig.plot_FT_bis:
+            elif event.inaxes == self.displayer_fig.subplot_FT_bis:
                 self.menu_lft.exec(self.mapToGlobal(event.guiEvent.pos()))
-            elif event.inaxes == self.displayer_fig.plot_like:
+            elif event.inaxes == self.displayer_fig.subplot_like:
                 self.menu_like.exec(self.mapToGlobal(event.guiEvent.pos()))
-            elif event.inaxes == self.displayer_fig.plot_post:
+            elif event.inaxes == self.displayer_fig.subplot_post:
                 self.menu_post.exec(self.mapToGlobal(event.guiEvent.pos()))
-            elif event.inaxes == self.plot_history:
+            elif event.inaxes == self.subplot_history:
                 self.menu_history.exec(self.mapToGlobal(event.guiEvent.pos()))
-            elif event.inaxes == self.displayer_fig.fond:
+            elif event.inaxes == self.displayer_fig.subplot_hist_parameters:
                 self.menu_info.exec(self.mapToGlobal(event.guiEvent.pos()))
 
     # --------------------------
@@ -138,15 +140,15 @@ class MainWindow(QMainWindow):
         self.controller.start_process_inverse()
     
     def action_replot_history(self):
-        self.controller.re_draw_fig("history", fig=self.displayer_fig)
+        self.controller.re_draw_fig("history", self.displayer_fig)
         self.canvas.draw()
 
     def action_combo_prediction(self, text):
-        self.controller.re_draw_fig("age", fig=self.displayer_fig)
+        self.controller.re_draw_fig("age", self.displayer_fig)
         self.canvas.draw()
 
     def action_combo_timescale(self, text):
-        self.controller.re_draw_fig("time_scale", fig=self.displayer_fig)
+        self.controller.re_draw_fig("time_scale", self.displayer_fig)
         self.canvas.draw()
 
     def action_button_color(self):
@@ -176,32 +178,44 @@ class MainWindow(QMainWindow):
 
     def combobox(self):
         self.combobox_saveformat = QComboBox()
-        self.combobox_saveformat.addItems(["no save", "png", "pdf", "svg"])
+        self.combobox_saveformat.addItem("no save","")
+        self.combobox_saveformat.addItem("png",".png")
+        self.combobox_saveformat.addItem("pdf",".pdf")
+        self.combobox_saveformat.addItem("svg",".svg")
+        
         self.combobox_savedirect = QComboBox()
-        self.combobox_savedirect.addItems(["automatic", "manual"])
+        self.combobox_savedirect.addItem("automatic",True)
+        self.combobox_savedirect.addItem("manual",False)
+        
         self.combobox_envelop = QComboBox()
         self.combobox_envelop.addItem("all t(T) paths", "all")
         self.combobox_envelop.addItem("t(T) paths percentage", "heatmap")
         self.combobox_envelop.addItem("96% envelop", "simple")
         self.combobox_envelop.currentTextChanged.connect(self.action_replot_history)
+        
         self.combobox_order = QComboBox()
         self.combobox_order.addItems(["Likelihood", "Posterior", "Iteration"])
         self.combobox_order.currentTextChanged.connect(self.action_replot_history)
+        
         self.combobox_color = QComboBox()
         self.combobox_color.addItems(["Likelihood", "Posterior"])
         self.combobox_color.currentTextChanged.connect(self.action_replot_history)
+        
         self.combobox_vertical = QComboBox()
         self.combobox_vertical.addItems(["no", "Max Likelihood", "Max Posterior", "Expected"])
         self.combobox_vertical.currentTextChanged.connect(self.action_replot_history)
+        
         self.combobox_colormap = QComboBox()
         self.combobox_colormap.addItem("mid value", "viridis_r")
         self.combobox_colormap.addItem("extrem value", "cividis_r")
         self.combobox_colormap.addItem("continue", "jet")
         self.combobox_colormap.addItem("QTQt", "QTQt_old")
         self.combobox_colormap.currentTextChanged.connect(self.action_replot_history)
+        
         self.combobox_prediction = QComboBox()
         self.combobox_prediction.addItems(["Max Likelihood", "Max Posterior", "Expected"])
         self.combobox_prediction.currentTextChanged.connect(self.action_combo_prediction)
+        
         self.combobox_timescale = QComboBox()
         self.combobox_timescale.addItems(["Epoch", "Eon", "Era", "Period", "Superepoch", "Age"])
         self.combobox_timescale.currentTextChanged.connect(self.action_combo_timescale)
@@ -347,7 +361,7 @@ class ResampleWindow(QMainWindow):
         self.setWindowTitle("Results of resampling kinetic parameters")
         
         # Création de la figure de base 
-        self.resample_figure = plotter.built_resample_fig()
+        self.resample_figure = figure(FigureClass=ResampleFig)
         self.canvas = FigureCanvasQTAgg(self.resample_figure)
         self.addToolBar(NavigationToolbar2QT(self.canvas)) # "", self" ? useless ?
         
@@ -369,26 +383,7 @@ class ResampleWindow(QMainWindow):
         # Ajout de la zone de défilement au layout principal
         layout.addWidget(self.scroll_area)
     
-    def update_subplots(self, data_init):
-        num_sample = data_init.shape[0] 
-        num_graphs = 2
-        
-        # compter le nombre d'echantillon avec des data He
-        for i in range(num_sample):
-            if int(data_init[i, 5]) > 0 : num_graphs = num_graphs + 1      
-        
-        # Efface la figure existante
-        self.resample_figure.clear()  # Efface la figure pour ajouter de nouveaux subplots
-        
-        # Crée une nouvelle figure et met à jour le canvas
-        self.resample_figure = plotter.built_resample_fig(fig=self.resample_figure, num_graphs=num_graphs)
-        
-        # Remet à jour le canvas avec la nouvelle figure
-        self.canvas.resample_figure = self.resample_figure
-        #"self.canvas.setMinimumSize(850, 200 * num_graphs)  # Largeur fixe, hauteur augmentée
-        #self.addToolBar(NavigationToolbar2QT(self.canvas)) # "", self" ? useless ?
-        self.canvas.draw()
-        
+   
     def closeEvent(self, event):
         self.stop.emit("resample")
         event.ignore()

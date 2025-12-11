@@ -2,10 +2,10 @@
 
 #basic librairy
 from pandas import read_csv
+from pandas import DataFrame, concat, NaT
 
 #dicuss with the machine
 from os import path
-from pandas import DataFrame, concat, NaT
 
 # internal lib
 from displayer.data import parser
@@ -133,51 +133,51 @@ def export_age(data:RInversion(), *, filepath=None):
 
     # Vérification de tabl_He_like
     if data.tabl_He_like.ndim > 0:
-        n_elements_He = data.tabl_He_like[:, :, 2].stack(dim=('echantillon', 'Y')).size
+        n_elements_He = data.tabl_He_like[:, :, 2].stack(stacked_dim=('echantillon', 'Y')).size
         export_tab_He = {
-            "sample": data.tabl_He_like[:, :, 8].stack(dim=('echantillon', 'Y')),
+            "sample": data.tabl_He_like[:, :, 8].stack(stacked_dim=('echantillon', 'Y')),
             "type": ["He"] * n_elements_He,
-            "crystal": data.tabl_He_like[:, :, 9].stack(dim=('echantillon', 'Y')),
-            "Rs [µm]": data.tabl_He_like[:, :, 4].stack(dim=('echantillon', 'Y')),
-            "obs. ages [Ma]": data.tabl_He_like[:, :, 2].stack(dim=('echantillon', 'Y')),
-            "obs. error [Ma]": data.tabl_He_like[:, :, 3].stack(dim=('echantillon', 'Y')),
-            "Max Like - ages [Ma]": data.tabl_He_like[:, :, 0].stack(dim=('echantillon', 'Y')),
-            "Max Like - error [Ma]": data.tabl_He_like[:, :, 1].stack(dim=('echantillon', 'Y')),
-            "Max Post - ages [Ma]": data.tabl_He_post[:, :, 0].stack(dim=('echantillon', 'Y')),
-            "Max Post - error [Ma]": data.tabl_He_post[:, :, 1].stack(dim=('echantillon', 'Y')),
-            "Expect - ages [Ma]": data.tabl_He_expect[:, :, 0].stack(dim=('echantillon', 'Y')),
-            "Expect - error [Ma]": data.tabl_He_expect[:, :, 1].stack(dim=('echantillon', 'Y')),
-            "Max Like - Tc cross [Ma]": data.tabl_He_like[:, :, 5].stack(dim=('echantillon', 'Y')),
-            "Max Post - Tc cross [Ma]": data.tabl_He_post[:, :, 5].stack(dim=('echantillon', 'Y')),
-            "Expect - Tc cross [Ma]": data.tabl_He_expect[:, :, 5].stack(dim=('echantillon', 'Y')),
-            "Max Like - eU [ppm]": data.tabl_He_like[:, :, 6].stack(dim=('echantillon', 'Y')),
-            "Max Post - eU [ppm]": data.tabl_He_post[:, :, 6].stack(dim=('echantillon', 'Y')),
-            "Expect - eU [ppm]": data.tabl_He_expect[:, :, 6].stack(dim=('echantillon', 'Y')),
+            "crystal": data.tabl_He_like[:, :, 9].stack(stacked_dim=('echantillon', 'Y')),
+            "Rs [µm]": data.tabl_He_like[:, :, 4].stack(stacked_dim=('echantillon', 'Y')),
+            "obs. ages [Ma]": data.tabl_He_like[:, :, 2].stack(stacked_dim=('echantillon', 'Y')),
+            "obs. error [Ma]": data.tabl_He_like[:, :, 3].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - ages [Ma]": data.tabl_He_like[:, :, 0].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - error [Ma]": data.tabl_He_like[:, :, 1].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - ages [Ma]": data.tabl_He_post[:, :, 0].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - error [Ma]": data.tabl_He_post[:, :, 1].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - ages [Ma]": data.tabl_He_expect[:, :, 0].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - error [Ma]": data.tabl_He_expect[:, :, 1].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - Tc cross [Ma]": data.tabl_He_like[:, :, 5].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - Tc cross [Ma]": data.tabl_He_post[:, :, 5].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - Tc cross [Ma]": data.tabl_He_expect[:, :, 5].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - eU [ppm]": data.tabl_He_like[:, :, 6].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - eU [ppm]": data.tabl_He_post[:, :, 6].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - eU [ppm]": data.tabl_He_expect[:, :, 6].stack(stacked_dim=('echantillon', 'Y')),
         }
         export_tab_He = DataFrame(export_tab_He)
 
     # Vérification de tabl_FT_like
     if data.tabl_FT_like.ndim > 0:
-        n_elements_FT = data.tabl_FT_like[:, :, 4].stack(dim=('echantillon', 'Y')).size
+        n_elements_FT = data.tabl_FT_like[:, :, 4].stack(stacked_dim=('echantillon', 'Y')).size
         export_tab_FT = {
-            "sample": data.tabl_FT_like[:, :, 4].stack(dim=('echantillon', 'Y')),
+            "sample": data.tabl_FT_like[:, :, 4].stack(stacked_dim=('echantillon', 'Y')),
             "type": ["FT"] * n_elements_FT,
-            "obs. ages [Ma]": data.tabl_FT_like[:, :, 1].stack(dim=('echantillon', 'Y')),
-            "obs. error [Ma]": data.tabl_FT_like[:, :, 2].stack(dim=('echantillon', 'Y')),
-            "Max Like - ages [Ma]": data.tabl_FT_like[:, :, 0].stack(dim=('echantillon', 'Y')),
-            "Max Like - error [Ma]": data.tabl_FT_like[:, :, 3].stack(dim=('echantillon', 'Y')),
-            "Max Post - ages [Ma]": data.tabl_FT_post[:, :, 0].stack(dim=('echantillon', 'Y')),
-            "Max Post - error [Ma]": data.tabl_FT_post[:, :, 3].stack(dim=('echantillon', 'Y')),
-            "Expect - ages [Ma]": data.tabl_FT_expect[:, :, 0].stack(dim=('echantillon', 'Y')),
-            "Expect - error [Ma]": data.tabl_FT_expect[:, :, 3].stack(dim=('echantillon', 'Y')),
-            "obs kin. par.": data.tabl_FT_like[:, :, 8].stack(dim=('echantillon', 'Y')),
-            "obs kin. par. error.": data.tabl_FT_like[:, :, 9].stack(dim=('echantillon', 'Y')),
-            "Max Like - kin. par.": data.tabl_FT_like[:, :, 6].stack(dim=('echantillon', 'Y')),
-            "Max Like - kin. par. error": data.tabl_FT_like[:, :, 7].stack(dim=('echantillon', 'Y')),
-            "Max Post - kin. par.": data.tabl_FT_post[:, :, 6].stack(dim=('echantillon', 'Y')),
-            "Max Post - kin. par. error": data.tabl_FT_post[:, :, 7].stack(dim=('echantillon', 'Y')),
-            "Expect - kin. par.": data.tabl_FT_expect[:, :, 6].stack(dim=('echantillon', 'Y')),
-            "Expect - kin. par. error": data.tabl_FT_expect[:, :, 7].stack(dim=('echantillon', 'Y')),
+            "obs. ages [Ma]": data.tabl_FT_like[:, :, 1].stack(stacked_dim=('echantillon', 'Y')),
+            "obs. error [Ma]": data.tabl_FT_like[:, :, 2].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - ages [Ma]": data.tabl_FT_like[:, :, 0].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - error [Ma]": data.tabl_FT_like[:, :, 3].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - ages [Ma]": data.tabl_FT_post[:, :, 0].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - error [Ma]": data.tabl_FT_post[:, :, 3].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - ages [Ma]": data.tabl_FT_expect[:, :, 0].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - error [Ma]": data.tabl_FT_expect[:, :, 3].stack(stacked_dim=('echantillon', 'Y')),
+            "obs kin. par.": data.tabl_FT_like[:, :, 8].stack(stacked_dim=('echantillon', 'Y')),
+            "obs kin. par. error.": data.tabl_FT_like[:, :, 9].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - kin. par.": data.tabl_FT_like[:, :, 6].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Like - kin. par. error": data.tabl_FT_like[:, :, 7].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - kin. par.": data.tabl_FT_post[:, :, 6].stack(stacked_dim=('echantillon', 'Y')),
+            "Max Post - kin. par. error": data.tabl_FT_post[:, :, 7].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - kin. par.": data.tabl_FT_expect[:, :, 6].stack(stacked_dim=('echantillon', 'Y')),
+            "Expect - kin. par. error": data.tabl_FT_expect[:, :, 7].stack(stacked_dim=('echantillon', 'Y')),
         }
         export_tab_FT = DataFrame(export_tab_FT)
 
@@ -188,19 +188,24 @@ def export_age(data:RInversion(), *, filepath=None):
     if not export_tab.empty:
         export_tab['crystal'] = export_tab['crystal'].replace("0", "ap.").replace("1", "zr.").replace("2", "other")
         export_tab['sample'] = export_tab['sample'].replace("Max-Like", "")
-    
-    export_tab = export_tab[export_tab['obs. ages [Ma]'].notna() & (export_tab['obs. ages [Ma]'] != '')]
-    export_tab.to_excel(filepath, index=False, header=True)
+        export_tab.replace("nan", NaT, inplace=True)
+        export_tab = export_tab[export_tab['obs. ages [Ma]'].notna() & (export_tab['obs. ages [Ma]'] != '')]
+        
+        _, file_extension = path.splitext(filepath)
+        if file_extension == ".xlsx":
+            export_tab.to_excel(filepath, index=False, header=True)
+        elif file_extension == ".csv":
+            export_tab.to_csv(filepath, index=False, header=True)
     
 def export_length(data:RInversion(), *, filepath=None):
-    if not filepath : filepath = savers.get_path(extension='xlsx')
+    if not filepath : filepath = savers.get_path(extension='xlsx, csv')
     
-    export_tab_LFT = {"sample" : data.tabl_LFT[:,:,5].stack(dim=('echantillon','Y')),
-                      "length [µm]" : data.tabl_LFT[:,:,0].stack(dim=('echantillon','Y')),
-                      "observed FTL [µm]" : data.tabl_LFT[:,:,1].stack(dim=('echantillon','Y')),
-                      "Max Like predicted FTL [µm]" : data.tabl_LFT[:,:,2].stack(dim=('echantillon','Y')),
-                      "Max Post predicted FTL[µm]" : data.tabl_LFT[:,:,3].stack(dim=('echantillon','Y')),
-                      "Expected predicted FTL[µm]" : data.tabl_LFT[:,:,3].stack(dim=('echantillon','Y')),
+    export_tab_LFT = {"sample" : data.tabl_LFT[:,:,5].stack(stacked_dim=('echantillon','Y')),
+                      "length [µm]" : data.tabl_LFT[:,:,0].stack(stacked_dim=('echantillon','Y')),
+                      "observed FTL [µm]" : data.tabl_LFT[:,:,1].stack(stacked_dim=('echantillon','Y')),
+                      "Max Like predicted FTL [µm]" : data.tabl_LFT[:,:,2].stack(stacked_dim=('echantillon','Y')),
+                      "Max Post predicted FTL[µm]" : data.tabl_LFT[:,:,3].stack(stacked_dim=('echantillon','Y')),
+                      "Expected predicted FTL[µm]" : data.tabl_LFT[:,:,3].stack(stacked_dim=('echantillon','Y')),
                      }
     export_tab = DataFrame(export_tab_LFT)
 
@@ -208,4 +213,10 @@ def export_length(data:RInversion(), *, filepath=None):
         export_tab["sample"] = export_tab["sample"].str.replace("<built-in function empty>", "nan")
         export_tab.replace("nan", NaT, inplace=True)
         export_tab.dropna(how='all', inplace=True)
-        export_tab.to_excel(filepath, index=False, header=True)
+        
+        _, file_extension = path.splitext(filepath)
+        if file_extension == ".xlsx":
+            export_tab.to_excel(filepath, index=False, header=True)
+        elif file_extension == ".csv":
+            export_tab.to_csv(filepath, index=False, header=True)
+        

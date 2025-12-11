@@ -9,12 +9,11 @@ Contient les outils pour :
 - Effectuer des taches complexe
 """
 
-from . import controller
+#from . import controller
 from . import savers
 from . import workers
 
 __all__ = [
-    "controller",
     "savers",
     "workers",
 ]

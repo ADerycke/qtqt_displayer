@@ -21,12 +21,14 @@ from matplotlib.pyplot import rcParams
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtCore import QThread, Signal
 
+
 # === Import logique interne ===
 from displayer.ui.main_window import MainWindow, ResampleWindow
 from displayer.ui.dialogs import ProgressWindow, ColorSelectionDialog, HelpWindow, ErrorDialog
 from displayer.data import parser
 from displayer.data.datatypes import RInversion
-from displayer.plotting import plotter
+from displayer.plotting.customfig import InverseFig
+
 from . import savers, workers
 
 
@@ -113,7 +115,7 @@ class Controller():
     
     def export_data(self, export_type:str):
         if len(self.invers_data.sample_list) > 0:
-            filespath = savers.get_path(extension=".xlsx")
+            filespath = savers.get_path(extension=".xlsx, .csv")
             if len(filespath)> 0 :
                 self.process_export = ExportData(self.invers_data, export_type, filespath)
                 self.process_export.setObjectName("export")
@@ -194,24 +196,24 @@ class Controller():
     # == Fonctions de tracés
     # --------------------------
     
-    def re_draw_fig(self, fig_type, *, fig=None):
+    def re_draw_fig(self, fig_type, fig:InverseFig):
         if len(self.invers_data.sample_list) > 0:
             self.parameters = self.get_inversion_parameters()
             
             if fig_type == "time_scale":
-                plotter.plot_time_scale(fig, self.invers_data.tabl_tT_history,
+                fig.plot_time_scale(self.invers_data.tabl_tT_history,
                                         niveau=self.parameters['niveau'], time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'])
             
             elif fig_type == "age":
-                plotter.plot_pred_ages(fig, self.invers_data.tabl_He_like, self.invers_data.tabl_He_post, self.invers_data.tabl_He_expect,
+                fig.plot_pred_ages(self.invers_data.tabl_He_like, self.invers_data.tabl_He_post, self.invers_data.tabl_He_expect,
                                        self.invers_data.tabl_FT_like, self.invers_data.tabl_FT_post, self.invers_data.tabl_FT_expect,
                                        self.invers_data.color_list, model=self.parameters['model'])
-                plotter.plot_LFT(fig, self.invers_data.tabl_LFT, self.invers_data.color_list, model=self.parameters['model'])
+                fig.plot_LFT(fig, self.invers_data.tabl_LFT, self.invers_data.color_list, model=self.parameters['model'])
             
             elif fig_type == "history":
                 
                 if "tabl_grid_history" in self.invers_data :
-                    plotter.plot_histoire(fig, self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_tT_pred_vertical, self.invers_data.tabl_constrain,
+                    fig.plot_histoire(self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_tT_pred_vertical, self.invers_data.tabl_constrain,
                                           classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
                                           time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
                                           colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
@@ -219,7 +221,7 @@ class Controller():
                                           #tqdm_stream=self.tqdm_stream
                                           )
                 else:
-                    plotter.plot_histoire(fig, self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_tT_pred_vertical, self.invers_data.tabl_constrain,
+                    fig.plot_histoire(self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_tT_pred_vertical, self.invers_data.tabl_constrain,
                                           classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
                                           time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
                                           colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
@@ -349,20 +351,20 @@ class InvertProcess(QThread):
             #MAIN FIGURE
             self.send_signal(3, 'drawing iteration')
             try: 
-                plotter.plot_iteration(self.displayer_fig, tabl_tT_history, info_list)
+                self.displayer_fig.plot_iteration(tabl_tT_history, info_list)
             except:
                 self.error_handler('drawing iteration')
             
             self.send_signal(4, 'drawing predicted ages/LFT')
             try:
-                plotter.plot_pred_ages(self.displayer_fig, tabl_He_like, tabl_He_post, tabl_He_expect,
+                self.displayer_fig.plot_pred_ages(tabl_He_like, tabl_He_post, tabl_He_expect,
                                        tabl_FT_like, tabl_FT_post, tabl_FT_expect,
                                        color_list, model=self.parameters['model'])
             except:
                 self.error_handler('drawing predicted ages/LFT')
             
             try:
-                plotter.plot_LFT(self.displayer_fig, tabl_LFT, color_list, model=self.parameters['model'])
+                self.displayer_fig.plot_LFT(tabl_LFT, color_list, model=self.parameters['model'])
             except:
                 self.error_handler('')
             
@@ -370,7 +372,7 @@ class InvertProcess(QThread):
             self.send_signal(5, 'drawing t(T) paths')
             try:
                 if self.file_tto_fix:
-                    plotter.plot_histoire(self.displayer_fig, tabl_tT_history, tabl_tT_pred, tabl_tT_pred_vertical, tabl_constrain,
+                    self.displayer_fig.plot_histoire(tabl_tT_history, tabl_tT_pred, tabl_tT_pred_vertical, tabl_constrain,
                                           classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
                                           time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
                                           colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
@@ -378,7 +380,7 @@ class InvertProcess(QThread):
                                           #tqdm_stream=self.tqdm_stream
                                           )
                 else:
-                    plotter.plot_histoire(self.displayer_fig, tabl_tT_history, tabl_tT_pred, tabl_tT_pred_vertical, tabl_constrain,
+                    self.displayer_fig.plot_histoire(tabl_tT_history, tabl_tT_pred, tabl_tT_pred_vertical, tabl_constrain,
                                           classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
                                           time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
                                           colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
@@ -388,15 +390,15 @@ class InvertProcess(QThread):
                 self.error_handler('drawing t(T) paths')
             
             try:
-                plotter.plot_time_scale(self.displayer_fig, tabl_tT_history,
+                self.displayer_fig.plot_time_scale(tabl_tT_history,
                                         niveau=self.parameters['niveau'], time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'])
             except:
                 self.error_handler('drawing time_scale')
             
             self.send_signal(6, 'writting information')
             try:
-                plotter.plot_info(self.displayer_fig, info_list)
-                plotter.add_legende(self.displayer_fig, sample_list, color_list)
+                self.displayer_fig.add_information(info_list)
+                self.displayer_fig.add_samples(sample_list, color_list)
             except:
                 self.error_handler('writting information')
             
@@ -405,8 +407,14 @@ class InvertProcess(QThread):
             
             #DRAW RESAMPLE
             if self.file_Hierachical:
-                self.main_process.resample_window.update_subplots(tab_init_resample)
-                plotter.plot_resample(self.main_process.resample_window.resample_figure, tab_init_resample, tab_resample, sample_list, color_list) 
+                #rescale figure
+                num_graphs = 2
+                # compter le nombre d'echantillon avec des data He
+                for i in range(tab_init_resample.shape[0] ):
+                    if int(tab_init_resample[i, 5]) > 0 : num_graphs = num_graphs + 1      
+                self.main_process.resample_window.resample_figure.update_size(num_graphs)
+                
+                self.main_process.resample_window.resample_figure.plot_resample(tab_init_resample, tab_resample, sample_list, color_list) 
                 self.main_process.resample_window.canvas.draw()
                 self.show_wind.emit("resample",True)
             else:
@@ -414,12 +422,20 @@ class InvertProcess(QThread):
             
             #SAVE FIGURES
             try:
-                if self.parameters['save_format'] != '':
-                    self.main_window.canvas.setFixedWidth(1680)
-                    self.main_window.canvas.setFixedHeight(500)
-                    savers.save_QTQt_fig(self.main_window, self.filepath, self.parameters['save_format'], autopath=self.parameters['auto_save_path'])
+                if self.parameters['fig_format'] != '':
+                    inverse_fig, resample_fig, _, _ = savers.get_output_filepath(self.filepaths[n],
+                                                                                image_format=self.parameters['fig_format'],
+                                                                                table_format=self.parameters['tab_format'],
+                                                                                groupe=self.parameters['grp_export'],
+                                                                                autopath=self.parameters['auto_save_path'])
+                    
+                    self.main_process.main_window.displayer_fig.canvas.setFixedWidth(1680)
+                    self.main_process.main_window.displayer_fig.canvas.setFixedHeight(500)
+                    self.main_process.main_window.displayer_fig.savefig(inverse_fig, bbox_inches='tight')
                     if self.file_Hierachical:
-                        savers.save_QTQt_fig(self.main_window.resample_window, self.filepath + "_resample", self.parameters['save_format'], autopath=self.parameters['auto_save_path'])
+                        self.main_process.resample_window.canvas.setFixedWidth(900)
+                        self.main_process.resample_window.canvas.setFixedHeight(150*num_graphs)
+                        self.main_process.resample_window.resample_figure.savefig(resample_fig, bbox_inches='tight')
             except:
                 self.error_handler('auto save')
             
@@ -445,7 +461,7 @@ class InvertProcess(QThread):
             self.send_signal(8, '')
             
             
-class ExportData(QThread): #a passer en partie dans le workers pour utilisation hors interface
+class ExportData(QThread): 
     def __init__(self, data:RInversion(), export_type:str, filepath):
         super().__init__()
         self.data = data

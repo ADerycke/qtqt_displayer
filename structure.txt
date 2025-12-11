@@ -4,34 +4,36 @@ qtqt_displayer/
 │── requirements.txt        # Dépendances (PySide6, matplotlib, numpy, pandas, etc.)
 │── README.md               # Documentation du projet
 │
-├── displayer/                   # Package principal
+├── displayer/              # Package principal
 │   │── __init__.py
 │   │
 │   ├── ui/                 # Gestion de l'interface (Qt)
-│   │   │── main_window.py      # QMainWindow (plusieurs)
-│   │   │── dialogs.py          # QWidget secondaire (boite erreur, choisir couleur, etc.)
+│   │   │── main_window.py      # Class QMainWindow (plusieurs)
+│   │   │── dialogs.py          # Class QWidget secondaire (boite erreur, choisir couleur, etc.)
 │   │   └── resources/          # help files, Icônes...
 │   │
 │   ├── data/               # Parsing et manipulation des fichiers QTQt
 │   │   │── __init__.py
 │   │   │── datatypes.py        # Class du type de donnee
-│   │   │── parser.py           # Fonctions extract_* 
-│   │   └── utils.py            # Fonctions utilitaires
+│   │   │── parser.py           # fonctions extract_* 
+│   │   └── utils.py            # fonctions utilitaires
 │   │
 │   ├── plotting/           # Fonctions de tracés matplotlib
 │   │   │── __init__.py
-│   │   │── plotter.py         # Fonction de génération des figures + injection des data dans les graphs
-│   │   └── utils.py           # Fonctions utilitaires
+│   │   │── customfig.py         # Class génération / manipulation des FIGURES
+│   │   │── plotter.py         # fonctions plot_* (individuel) + injection des data dans les graphs
+│   │   └── utils.py           # fonctions utilitaires
 │   │
 │   └── core/               # Logique de l'application
 │       │── __init__.py
-│       │── controller.py     # Cerveau GUI + QThread secondaire
+│       │── controller.py     # Class Cerveau GUI + QThread secondaire
 │       │── saver.py          # fonction de navigation / interaction machine (GUI optionnel)
 │       └── workers.py        # fonction utilitaire (no GUI)
 │
 ├── tests/                  # Tests unitaires et d’intégration
 │   │── test_core.py
 │   │── test_data.py
+│   │── test_plotter.py
 │   └── test_ui.py
 │
 └── examples/               # Jeux de données ou fichiers QTQt pour tester

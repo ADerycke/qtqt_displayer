@@ -73,3 +73,28 @@ class RInversion():
             self.tab_init_resample = data['tab_init_resample']
             self.tab_resample = data['tab_resample']
         
+class RForward():
+    
+    def __init__(self, *,data=None):
+        
+        self.info_list = {}
+        self.sample_list = {}
+        self.color_list = []
+        
+        self.tabl_tT = DataArray()
+        self.tabl_tT_vertical = DataArray()
+        
+        self.tabl_He = DataArray()
+        
+        self.tabl_FT = DataArray()
+        
+        self.tabl_LFT = DataArray()
+
+        
+        if data is not None: self.set_data(data)
+        
+    
+    def set_data(self, data):
+        
+        self.info_list = data['info_list']
+        
