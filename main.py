@@ -9,8 +9,7 @@ Created on Mon Oct 13 17:13:11 2025
 from PySide6.QtWidgets import QApplication
 
 # importation internal logic
-import sys, os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import sys
 from displayer.core.controller import Controller
 
 

@@ -15,8 +15,6 @@ from matplotlib.colors import TABLEAU_COLORS, hex2color
 from matplotlib.pyplot import rcParams
 
 # internal lib
-import sys, os
-sys.path.append(os.path.dirname(__file__))
 from displayer.data import parser
 from displayer.data.datatypes import RInversion
 from displayer.plotting.customfig import InverseFig, ResampleFig
