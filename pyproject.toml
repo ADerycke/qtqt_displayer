@@ -1,13 +1,17 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "qtqt_displayer"
 version = "1.0.0"
 description = "Library to help for QTQt output representation"
-readme = "README.md"
+
 requires-python = ">=3.8"
+
+readme = "README.md"
+license = { file = "LICENSE" }
+
 authors = [
   { name="Alexis Derycke", email="alexis.derycke@hotmail.com" }
 ]
@@ -22,3 +26,9 @@ dependencies = [
   "tqdm",
   "xarray"
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+displayer-gui = "displayer.app.gui:main"
