@@ -72,7 +72,12 @@ pip install git+https://github.com/ADerycke/qtqt_displayer.git#main
 ### Launch the GUI version
 
 ```bash
-python -m qtqt_displayer.main
+displayer-gui
+```
+(if your are one Windows, add the .exe at the end)
+or
+```bash
+python -m displayer.app.gui
 ```
 
 ### Run without GUI (batch mode)
