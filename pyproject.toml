@@ -21,7 +21,7 @@ dependencies = [
   "numpy",
   "pandas",
   "pyrolite",
-  "PyQt5",
+  "PyQt5>=5.0.0",
   "scipy",
   "tqdm",
   "xarray"
