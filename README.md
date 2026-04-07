@@ -72,7 +72,10 @@ qtqt_displayer/
 You can install **qtqt-displayer** using `pip` and a local clone:
 
 ```bash
-pip install git+https://github.com/ADerycke/qtqt_displayer.git#main
+# code only
+pip install git+https://github.com/ADerycke/qtqt_displayer.git@main
+# with full graphical user interface
+pip install "git+https://github.com/ADerycke/qtqt_displayer.git@main#egg=displayer[gui]"
 ```
 
 ---
