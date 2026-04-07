@@ -13,7 +13,8 @@ from displayer.core.controller import Controller
 
 
 # Start the program
-def main():
+if __name__ == "__main__":
+    
     if not QApplication.instance():
         app = QApplication(sys.argv)
     else:
