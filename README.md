@@ -31,38 +31,42 @@ It provides both a graphical user interface (GUI) and a command-line mode to exp
 
 ```
 qtqt_displayer/
-│── main.py                 # GUI application entry point
-│── main_no_interface.py    # Run complete processing without GUI
-│── requirements.txt        # Dependencies (PySide6, matplotlib, numpy, pandas, etc.)
-│
-├── displayer/
-│   │── __init__.py
-│   │
-│   ├── ui/                 # Qt interface management
-│   │   │── main_window.py      # Main application windows
-│   │   │── dialogs.py          # Secondary widgets (dialogs, color picker, etc.)
-│   │   └── resources/          # Help files, icons, etc.
-│   │
-│   ├── data/               # Data parsing and manipulation
-│   │   │── __init__.py
-│   │   │── datatypes.py        # Data type classes
-│   │   │── parser.py           # extract_* functions for QTQt files
-│   │   └── utils.py            # Helper functions
-│   │
-│   ├── plotting/           # Plotting utilities and figure generation
-│   │   │── __init__.py
-│   │   │── plotter.py         # Functions for figure generation and graph data injection
-│   │   └── utils.py           # Helper functions
-│   │
-│   └── core/               # Application logic and threading
-│       │── __init__.py
-│       │── controller.py     # GUI controller + background QThread
-│       │── saver.py          # File navigation and save functions (GUI optional)
-│       └── workers.py        # Utility functions (no GUI)
-│
-│
-└── examples/               # Example QTQt files and datasets (not available as to big for GitHub)
-    └── demo_data.txt
+    │
+    ├── src/
+    │   └── displayer/    
+    │        │── __init__.py
+    │        │
+    │        ├── ui/                 # Qt interface management
+    │        │   │── main_window.py      # Main application windows
+    │        │   │── dialogs.py          # Secondary widgets (dialogs, color picker, etc.)
+    │        │   └── resources/          # Help files, icons, etc.
+    │        │
+    │        ├── data/               # Data parsing and manipulation
+    │        │   │── __init__.py
+    │        │   │── datatypes.py        # Data type classes
+    │        │   │── parser.py           # extract_* functions for QTQt files
+    │        │   └── utils.py            # Helper functions
+    │        │
+    │        ├── plotting/           # Plotting utilities and figure generation
+    │        │   │── __init__.py
+    │        │   │── plotter.py         # Functions for figure generation and graph data injection
+    │        │   └── utils.py           # Helper functions
+    │        │
+    │        └── core/               # Application logic and threading
+    │             │── __init__.py
+    │             │── controller.py     # GUI controller + background QThread
+    │             │── saver.py          # File navigation and save functions (GUI optional)
+    │             └── workers.py        # Utility functions (no GUI)
+    │
+    │
+    │── scripts/        # code to run/check if you want to do it by yourself
+    │   │── main.py                     # GUI application entry point
+    │   └── main_no_interface.py        # Run complete processing without GUI
+    │
+    │
+    │
+    └── examples/               # Example QTQt files and datasets (not available as to big for GitHub)
+        └── demo_data.txt
 ```
 
 ---
