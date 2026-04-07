@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 16 10:06:23 2025
+Created on Mon Oct 13 17:09:44 2025
 
 @author: Alexis
 """
@@ -8,6 +8,7 @@ Created on Tue Dec 16 10:06:23 2025
 # general lib
 from pandas import read_csv
 from os import path
+import os
 
 # figure lib
 from matplotlib.pyplot import figure
@@ -18,12 +19,11 @@ from matplotlib.pyplot import rcParams
 from displayer.data import parser
 from displayer.data.datatypes import RInversion
 from displayer.plotting.customfig import InverseFig, ResampleFig
-#from displayer.plotting import plotter
 from displayer.core import savers, workers
 
 
-#%% GENERAL FUNCTION TO PROCESS FILES
-def process_one_file(filepath, export_paths, inversion_param, *, tab_color=None, font_size = 11):
+# GENERAL FUNCTION TO PROCESS FILES
+def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, font_size = 11):
     
     # GENERAL PARAMETERS
     if tab_color is None :
@@ -121,19 +121,19 @@ def process_one_file(filepath, export_paths, inversion_param, *, tab_color=None,
     displayer_figure.plot_iteration(data_inversion.tabl_tT_history, data_inversion.info_list)
     displayer_figure.plot_pred_ages(data_inversion.tabl_He_like, data_inversion.tabl_He_post, data_inversion.tabl_He_expect,
                    data_inversion.tabl_FT_like, data_inversion.tabl_FT_post, data_inversion.tabl_FT_expect,
-                   data_inversion.color_list, model=inversion_param['model'])
-    displayer_figure.plot_LFT(data_inversion.tabl_LFT, data_inversion.color_list, model=inversion_param['model'])
+                   data_inversion.color_list, model=figure_param['model'])
+    displayer_figure.plot_LFT(data_inversion.tabl_LFT, data_inversion.color_list, model=figure_param['model'])
     if not isinstance(QTQt_tto_fix, str):
-        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_tT_pred_vertical, data_inversion.tabl_constrain, classement=inversion_param['classement'], color=inversion_param['hist_color'],
-                      history=inversion_param['chemin'], gradiant=inversion_param['gradiant'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'],
-                      colormap=inversion_param['colormap'], vertical_profile=inversion_param['vertical_profile'], data_stat=data_inversion.tabl_grid_history, enveloppe=data_inversion.distrib_envelopp, grid_info = data_inversion.grid_info)
+        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_tT_pred_vertical, data_inversion.tabl_constrain, classement=figure_param['classement'], color=figure_param['hist_color'],
+                      history=figure_param['chemin'], gradiant=figure_param['gradiant'], time_min=figure_param['time_min'], time_max=figure_param['time_max'], temp_min=figure_param['temp_min'], temp_max=figure_param['temp_max'],
+                      colormap=figure_param['colormap'], vertical_profile=figure_param['vertical_profile'], data_stat=data_inversion.tabl_grid_history, enveloppe=data_inversion.distrib_envelopp, grid_info = data_inversion.grid_info)
     else:
-        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_tT_pred_vertical, data_inversion.tabl_constrain, classement=inversion_param['classement'], color=inversion_param['hist_color'],
-                      history=inversion_param['chemin'], gradiant=inversion_param['gradiant'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'],
-                      colormap=inversion_param['colormap'], vertical_profile=inversion_param['vertical_profile'])
-    displayer_figure.plot_time_scale(data_inversion.tabl_tT_history, niveau=inversion_param['niveau'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'])
+        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_tT_pred_vertical, data_inversion.tabl_constrain, classement=figure_param['classement'], color=figure_param['hist_color'],
+                      history=figure_param['chemin'], gradiant=figure_param['gradiant'], time_min=figure_param['time_min'], time_max=figure_param['time_max'], temp_min=figure_param['temp_min'], temp_max=figure_param['temp_max'],
+                      colormap=figure_param['colormap'], vertical_profile=figure_param['vertical_profile'])
+    displayer_figure.plot_time_scale(data_inversion.tabl_tT_history, niveau=figure_param['niveau'], time_min=figure_param['time_min'], time_max=figure_param['time_max'], temp_min=figure_param['temp_min'], temp_max=figure_param['temp_max'])
     displayer_figure.add_hist_information(data_inversion.info_list)
-    displayer_figure.add_plotted_information(inversion_param)
+    displayer_figure.add_plotted_information(figure_param)
     displayer_figure.add_samples(data_inversion.sample_list, data_inversion.color_list)
     displayer_figure.canvas.draw()
 
@@ -151,7 +151,7 @@ def process_one_file(filepath, export_paths, inversion_param, *, tab_color=None,
         resample_figure.canvas.draw()
 
     # EXPORT FIGURE
-    if inversion_param['fig_format'] != '':
+    if figure_param['fig_format'] != '':
         #displayer_figure.canvas.setFixedWidth(1680)
         #displayer_figure.canvas.setFixedHeight(500)
         displayer_figure.figure.savefig(export_paths[0], bbox_inches='tight')
@@ -160,52 +160,68 @@ def process_one_file(filepath, export_paths, inversion_param, *, tab_color=None,
             resample_figure.figure.savefig(export_paths[1], bbox_inches='tight')
         
     # EXPORT DATA
-    if inversion_param['tab_format'] != '':
+    if figure_param['tab_format'] != '':
         workers.export_age(data_inversion,filepath= export_paths[2])
         workers.export_length(data_inversion,filepath= export_paths[3])
 
 
-# %%  MAIN PROGRAMME IN CASE OF LOCAL EXECUTION (DONE TO ALLOW ONECODE FUNCTION)
+# %%  MAIN PROGRAMME IN CASE OF LOCAL EXECUTION (BUILT TO ALLOW ONECODE FUNCTION)
 if __name__ == "__main__":
     
-    #list of option for plotting / saving
-    inversion_param = {
+    # LIST OF PLOTTING OPTION, EDITH IT AS YOU NEED
+    figure_param = {
+        
+        # allow you to select output folder with navigation window (available only for gui displayer):
         'auto_save_path' : False, # True, False
+        # put all exported files in a folder name after the inversion run:
         'grp_export' : False, # True, False
+        # format for the exported data (empty = no export) :
         'tab_format' : '', # '', '.csv', '.xlsx'
+        # format for the exported image (empty = no export) :
         'fig_format': '', # '', ".png", ".pdf", ".svg",
         
-        'chemin' : 'heatmap', #'all', 'heatmap', 'simple'
-        'colormap' : 'viridis_r', #'cividis_r', 'jet', 'QTQt_old',...
-        'classement':'Likelihood', #"Posterior", "Iteration"
+        # t(T) paths display options :
+        'chemin' : 'all', # 'all', 'heatmap', 'simple'
         'hist_color' : "Likelihood", # "Posterior"
+        'colormap' : 'viridis_r', # 'cividis_r', 'jet', 'QTQt_old',...
+        'classement':'Likelihood', # 'Likelihood', "Posterior", "Iteration"
+        'vertical_profile' : "no", # "no", "Max Likelihood", "Max Posterior", "Expected"
+        
+        # predicted results (ages and FT) represented :
         'model' : "Max Likelihood", #"Max Posterior", "Expected"
         
-        'niveau' :"Epoch", # "Eon", "Era", "Period", "Superepoch", "Age"
+        # geological time scale :
+        'niveau' :"Epoch", # "Eon", "Era", "Period", "Epoch", "Superepoch", "Age"
         
-        'gradiant' : 30,
-        
-        'time_min':-1,
-        'time_max':0,
-        'temp_min':-1,
-        'temp_max':0,
-        
-        'vertical_profile' : "no", # "Max Likelihood", "Max Posterior", "Expected"
+        # t(T) box parameters (use it to constrain the t(T) box) :
+        'gradiant' : 30, # in °/km
+        'time_min':-1, # '-1 : automatic
+        'time_max':0, # '0 : automatic
+        'temp_min':-1, # '-1 : automatic
+        'temp_max':0, # '0 : automatic
+
         }
             
-       
-    # load files
-    filepaths = savers.get_file()
+    # LOAD FILES
+    # if you have installed the gui version, you can use the following line
+    #filepaths = savers.get_file()
+    
+    # otherwise enterte a list of paths to the different files to process (only the run output)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    filepaths = [parent_dir + '/examples/test.txt']
 
     for file in filepaths:
         # init output files names
-        if inversion_param['fig_format'] != '' or inversion_param['tab_format'] !='':
+        if figure_param['fig_format'] != '' or figure_param['tab_format'] !='':
             inverse_fig, resample_fig, ages_table, lengths_table = savers.get_output_filepath(file,
-                                                                                   image_format=inversion_param['fig_format'],
-                                                                                   table_format=inversion_param['tab_format'],
-                                                                                   groupe=inversion_param['grp_export'],
-                                                                                   autopath=inversion_param['auto_save_path'])
+                                                                                   image_format=figure_param['fig_format'],
+                                                                                   table_format=figure_param['tab_format'],
+                                                                                   groupe=figure_param['grp_export'],
+                                                                                   autopath=figure_param['auto_save_path'])
             export_paths=(inverse_fig,resample_fig,ages_table,lengths_table)
         else :
             export_paths = ()
-        process_one_file(file, export_paths, inversion_param)
+        process_one_file(file, export_paths, figure_param)
+
+

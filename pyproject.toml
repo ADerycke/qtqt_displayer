@@ -33,4 +33,4 @@ gui = ["PySide6>=6.0.0"]
 where = ["src"]
 
 [project.scripts]
-displayer-gui = "displayer.app.gui:main"
+displayer-gui = {file = "displayer.app.gui:main", condition = "extra == 'gui'"}
