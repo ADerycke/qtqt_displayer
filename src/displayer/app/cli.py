@@ -209,7 +209,7 @@ if __name__ == "__main__":
     # otherwise enterte a list of paths to the different files to process (only the run output)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(current_dir)
-    filepaths = [parent_dir + '/examples/test.txt']
+    filepaths = [parent_dir + '\examples\test.txt']
 
     for file in filepaths:
         # init output files names
