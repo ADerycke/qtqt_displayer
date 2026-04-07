@@ -5,8 +5,8 @@ import numpy
 from xarray import DataArray
 
 #for plotting 
-from matplotlib.gridspec import GridSpec
-from matplotlib.pyplot import figure
+#from matplotlib.gridspec import GridSpec
+#from matplotlib.pyplot import figure
 
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from matplotlib.lines import Line2D
@@ -22,91 +22,63 @@ from . import utils
 
 # == FIG : init ==
 
-def built_inverse_fig(*, fig=None):
-    #init matplotlib fig
-    if not fig :
-        fig = figure(figsize=(17, 6))
-        fig.tight_layout()
-        fig.subplots_adjust(left=0.04, right=0.96, bottom=0.1, top=0.9)
+# ORIGINAL FIGURE DEFINITION, MOVE FOR V1.0.0 TO CUSTOMFIG 
+# def built_inverse_fig(*, fig=None):
+#     #init matplotlib fig
+#     if not fig :
+#         fig = figure(figsize=(17, 6))
+#         fig.tight_layout()
+#         fig.subplots_adjust(left=0.04, right=0.96, bottom=0.1, top=0.9)
     
-    #figure generale
-    structure = GridSpec(
-        ncols=8,
-        width_ratios=[1, 0.2, 1, 0.6, 1, 1, 1, 0.05],
-        nrows=6,
-        height_ratios=[0.2, 1, 1, 1, 1, 1],
-    )
+#     #figure generale
+#     structure = GridSpec(
+#         ncols=8,
+#         width_ratios=[1, 0.2, 1, 0.6, 1, 1, 1, 0.05],
+#         nrows=6,
+#         height_ratios=[0.2, 1, 1, 1, 1, 1],
+#     )
     
-    #add chart sub plot
-    fig.plot_FT = fig.add_subplot(structure[1:3, 0])
-    fig.plot_FT_bis = fig.plot_FT.twinx()
+#     #add chart sub plot
+#     fig.plot_FT = fig.add_subplot(structure[1:3, 0])
+#     fig.plot_FT_bis = fig.plot_FT.twinx()
     
-    fig.plot_like = fig.add_subplot(structure[1, 2])
-    fig.plot_post = fig.add_subplot(structure[2, 2])
-    fig.plot_age = fig.add_subplot(structure[3:5, 2])
+#     fig.plot_like = fig.add_subplot(structure[1, 2])
+#     fig.plot_post = fig.add_subplot(structure[2, 2])
+#     fig.plot_age = fig.add_subplot(structure[3:5, 2])
     
-    fig.plot_history = fig.add_subplot(structure[1:5, 4:7])
-    fig.plot_history_bis = fig.plot_history.twinx()
-    fig.plot_timescale = fig.add_subplot(structure[0, 4:7], sharex=fig.plot_history)
+#     fig.plot_history = fig.add_subplot(structure[1:5, 4:7])
+#     fig.plot_history_bis = fig.plot_history.twinx()
+#     fig.plot_timescale = fig.add_subplot(structure[0, 4:7], sharex=fig.plot_history)
     
-    fig.plot_hist_legen = fig.add_subplot(structure[1:5, 7])
+#     fig.plot_hist_legen = fig.add_subplot(structure[1:5, 7])
     
-    #add info sub plot
-    fig.plot_samples = fig.add_subplot(structure[3:, 0])
-    fig.plot_hist_parameters = fig.add_subplot(structure[5, 3:7])
+#     #info de modelisation
+#     #add info sub plot
+#     fig.plot_samples = fig.add_subplot(structure[3:, 0])
+#     fig.plot_plot_parameters = fig.add_subplot(structure[5, 1])
+#     fig.plot_hist_parameters = fig.add_subplot(structure[5, 3:7])
 
-    #info de modelisation
-    # x = 0.505
-    # y = 0.125
-    # dx = 0.115
-    # font_size = 9
-    # fig.fond = fig.patches.extend(
-    #     [
-    #         Rectangle(
-    #             (x - 0.005, y),
-    #             0.44,
-    #             -0.1,
-    #             fill=True,
-    #             color="whitesmoke",
-    #             alpha=1,
-    #             zorder=0,
-    #             transform=fig.transFigure,
-    #             figure=fig,
-    #         )
-    #     ]
-    # )
-    # fig.inversion_info_1 = fig.text(
-    #     x, y - 0.01, "", size=font_size, color="gray", style="italic"
-    # )
-    # fig.inversion_info_2 = fig.text(
-    #     x + dx * 1, y - 0.01, "", size=font_size, color="tan", style="italic"
-    # )
-    # fig.inversion_info_3 = fig.text(
-    #     x + dx * 2, y - 0.01, "", size=font_size, color="mediumaquamarine", style="italic"
-    # )
-    # fig.inversion_info_4 = fig.text(
-    #     x + dx * 3, y - 0.01, "", size=font_size, color="palevioletred", style="italic"
-    # )
-    
-    # chart layout
-    layout_iteration(fig)
-    layout_pred_ages(fig)
-    layout_LFT(fig)
-    layout_history(fig)
-    layout_time_scale(fig)
-    
-    layout_informations(fig.plot_samples)
-    layout_informations(fig.plot_hist_parameters)
-    
-    return fig
 
-def built_resample_fig(*, fig=None, num_graphs=2):  
-    if fig :
-        fig.set_size_inches(10, num_graphs * 4, forward=True)
-    else:
-        fig = figure(figsize=(10, num_graphs * 4))
-    fig.axs = fig.subplots(num_graphs, 1, sharex=True) 
-    return fig
+#     # chart layout
+#     layout_iteration(fig)
+#     layout_pred_ages(fig)
+#     layout_LFT(fig)
+#     layout_history(fig)
+#     layout_time_scale(fig)
+    
+#     layout_informations(fig.plot_samples)
+#     layout_informations(fig.plot_plot_parameters)
+#     layout_informations(fig.plot_hist_parameters)
+    
+#     return fig
+
+# def built_resample_fig(*, fig=None, num_graphs=2):  
+#     if fig :
+#         fig.set_size_inches(10, num_graphs * 4, forward=True)
+#     else:
+#         fig = figure(figsize=(10, num_graphs * 4))
+#     fig.axs = fig.subplots(num_graphs, 1, sharex=True) 
+#     return fig
 
 # === FIG : plot_iteration === plot_iteration(data_tT):
 
@@ -188,15 +160,15 @@ def plot_pred_ages(plot_age, tabl_He_like, tabl_He_post, tabl_He_expect, tabl_FT
     if 'Post' in model:
         data_He = tabl_He_post
         data_FT = tabl_FT_post
-        txt_info = 'max posterior'
+        #txt_info = 'max posterior'
     elif 'Expect' in model:
         data_He = tabl_He_expect
         data_FT = tabl_FT_expect
-        txt_info = 'expected'
+        #txt_info = 'expected'
     elif 'Like' in model:
         data_He = tabl_He_like
         data_FT = tabl_FT_like
-        txt_info = 'max likelihood'
+        #txt_info = 'max likelihood'
 
     if len(data_He) !=0 :
         for i in range(data_He.shape[0]):
@@ -249,7 +221,7 @@ def plot_pred_ages(plot_age, tabl_He_like, tabl_He_post, tabl_He_expect, tabl_FT
     y_min, y_max = plot_age.get_ylim()
     x_min, x_max = plot_age.get_xlim()
     
-    plot_age.text(x_max*1.15, (y_max-y_min)/2+y_min, 'prediction : ' + txt_info, style='italic', rotation='vertical',verticalalignment='center')
+    #plot_age.text(x_max*1.15, (y_max-y_min)/2+y_min, 'prediction : ' + txt_info, style='italic', rotation='vertical',verticalalignment='center')
     
     y_min = y_min * 0.9
     y_max = y_max * 1.1
@@ -809,14 +781,15 @@ def layout_time_scale(plot_timescale):
 
 # === FIG : plot_info(info_list)
 
-def add_information(plot_hist_parameters, parameters): 
+def add_hist_information(plot_hist_parameters, parameters): 
         
     #built the legend data
     legend_str=[
         #column :
         'Acceptance :',
-        'Birth = ' + str(parameters['Acceptance Birth']) + '%',
-        'Death = ' + str(parameters['Acceptance Death']) + '%',
+        'birth = ' + str(parameters['Acceptance Birth']) + '%',
+        'death = ' + str(parameters['Acceptance Death']) + '%',
+        '',
         '',
             
         #column 1:
@@ -824,38 +797,42 @@ def add_information(plot_hist_parameters, parameters):
         'time = ' + str(parameters['time gaussian']) + ' Ma (' + str(parameters['Acceptance time']) + '%)',
         'temp. = ' + str(parameters['temperature gaussian']) + '°C (' + str(parameters['Acceptance temperature']) + '%)',
         'offset = ' + str(parameters['offset gaussian']) + ' ' + str(parameters['Acceptance offset']),
+        '',
         
         #column 2:
         'Resample (accep. rate) :',
         'FT = ' + str(parameters['FT resample']) + str(parameters['Acceptance FT']),
         'He = ' + str(parameters['He resample']) + str(parameters['Acceptance He']),
         'VR = ' + str(parameters['VR resample']) + str(parameters['Acceptance VR']),
+        '',
         
         #column 3:
-        'Keep complex hist. = ' + str(parameters['Keep complex history']), 
-        'Gaussian explo. = ' + str(parameters['Gaussian exploration']),
-        'Maximum rate = ' + str(parameters['Rate tolerance']) + '°/Ma',
-        'Path show = 1 / ' + str(parameters['Thinning']),
+        'Exploration param. :',
+        'keep complex histories = ' + str(parameters['Keep complex history']), 
+        'resample out of prior = ' + str(parameters['Gaussian exploration']),
+        'maximum rate = ' + str(parameters['Rate tolerance']) + '°/Ma',
+        'paths show = 1 on ' + str(parameters['Thinning']),
         
         #column 4:
-        'Calculation step (ap./o.) :',
-        'diffusion = '+ str(parameters['Temperature steps diffusion Ap']) + '°C / ' + str(parameters['Temperature steps diffusion Other']) + '°C',
-        'annealing = ' + str(parameters['Temperature steps radi dam Ap']) + '°C / ' + str(parameters['Temperature steps radi dam Other']) + '°C',
-        ' ',
+        'Calculation step (ap. - oth.) :',
+        'diffusion = ' + str(parameters['Temperature steps diffusion Ap']) + '°C - ' + str(parameters['Temperature steps diffusion Other']) + '°C',
+        'annealing = ' + str(parameters['Temperature steps radi dam Ap']) + '°C - ' + str(parameters['Temperature steps radi dam Other']) + '°C',
+        'FT adapatative time = ' + str(parameters['Adaptive time step']),
+        '',
         ]
     
     #convert to legend elements 
     legend_elements = []
     for i in range(len(legend_str)):
-        legend_elements.append(Line2D([],[],color='none',label=legend_str[i])) #label='$\it{' + legend_str[i] + '}$'))
+        legend_elements.append(Line2D([],[],color='none',label=legend_str[i]))
         
     leg = plot_hist_parameters.legend(
         handles=legend_elements,
         #loc='upper left',
         bbox_to_anchor=(0.1, 0.8),
         ncol=5,
-        edgecolor="lightgrey",
-        facecolor='lightgrey',
+        edgecolor="steelblue",
+        facecolor='whitesmoke',
         handlelength=0,
         handletextpad=0,
         borderaxespad=0,
@@ -865,22 +842,77 @@ def add_information(plot_hist_parameters, parameters):
         )
     #self.plot_hist_parameters.patch.set_alpha(0.5)
     
-    # texts = leg.get_texts()
-
-    # # Exemples de styles ciblés
-    # for t in texts:
-    #     txt = t.get_text()
     
-    #     if "Acceptance :" in txt:
-    #         t.set_fontweight("bold")
+    #font parameters legend elements   
+    for t in leg.get_texts():
+        txt = t.get_text()
+        fsize = t.get_fontsize()
+        t.set_fontsize(fsize-1)
+        
+        if ":" in txt:
+            t.set_fontweight("bold")
     
-    #     if "Move" in txt or "Resample" in txt:
-    #         t.set_style("italic")
-    
-    #     if "Maximum rate" in txt:
-    #         t.set_color("red")
+        if "no" in txt:
+            t.set_fontstyle("italic")
+            t.set_color("grey")
 
 
+def add_plotted_information(plot_plot_parameters, inversion_param):
+    
+    #built the legend data
+    legend_str=[
+            #column :
+            'Plotted options :',
+            'predicted data = ' + str(inversion_param['model'])
+            ]
+    
+    if inversion_param['chemin'] == "heatmap":
+        legend_str.append(
+            't(T) representation = paths heatmap'
+            )
+    elif inversion_param['chemin'] == "simple":
+         legend_str.append(
+             't(T) representation = paths envelop'
+             )
+    elif inversion_param['chemin'] == "all":
+        legend_str.append(
+            't(T) coloration = ' + str(inversion_param['hist_color'])
+            )
+        legend_str.append(
+            'paths z order = ' + str(inversion_param['classement'])
+            )
+    
+    #convert to legend elements 
+    legend_elements = []
+    for i in range(len(legend_str)):
+        legend_elements.append(Line2D([],[],color='none',label=legend_str[i]))
+        
+    leg = plot_plot_parameters.legend(
+        handles=legend_elements,
+        #loc='center',
+        bbox_to_anchor=(1, 0.5),
+        ncol=1,
+        #edgecolor="white",
+        #facecolor='white',
+        handlelength=0,
+        handletextpad=0,
+        borderaxespad=0,
+        #alignment='center',
+        fontsize='large',
+        frameon=False,
+        )
+    
+    #font parameters legend elements   
+    for t in leg.get_texts():
+        txt = t.get_text()
+        fsize = t.get_fontsize()
+        t.set_fontsize(fsize-1)
+        if ":" in txt:
+            t.set_fontweight("bold")
+        if "=" in txt:
+            t.set_fontstyle("italic")
+
+            
 # === FIG : plot_legend
 
 def add_samples(plot_samples, sample_list, color_list):
@@ -894,7 +926,7 @@ def add_samples(plot_samples, sample_list, color_list):
     plot_samples.legend(
         title='Samples (files) :',
         handles=legend_elements,
-        bbox_to_anchor=(-0.2, 1),
+        bbox_to_anchor=(-0.2, 0.9),
         ncols=1,
         edgecolor="gray",
         alignment='left'

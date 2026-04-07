@@ -48,6 +48,7 @@ class InverseFig(Figure):
          
          #add info sub plot
         self.subplot_samples = self.add_subplot(structure[3:, 0])
+        self.subplot_plot_parameters = self.add_subplot(structure[5, 1])
         self.subplot_hist_parameters = self.add_subplot(structure[5, 3:7])
         
         #update layout
@@ -62,6 +63,7 @@ class InverseFig(Figure):
         plotter.layout_time_scale(self.subplot_timescale)
         
         plotter.layout_informations(self.subplot_samples)
+        plotter.layout_informations(self.subplot_plot_parameters)
         plotter.layout_informations(self.subplot_hist_parameters)
         
     def plot_iteration(self, *args, **kwargs):
@@ -79,8 +81,11 @@ class InverseFig(Figure):
     def plot_time_scale(self, *args, **kwargs):
         plotter.plot_time_scale(self.subplot_timescale, *args, **kwargs)
 
-    def add_information(self, *args, **kwargs):
-        plotter.add_information(self.subplot_hist_parameters, *args, **kwargs)
+    def add_hist_information(self, *args, **kwargs):
+        plotter.add_hist_information(self.subplot_hist_parameters, *args, **kwargs)
+    
+    def add_plotted_information(self, *args, **kwargs):
+        plotter.add_plotted_information(self.subplot_plot_parameters, *args, **kwargs)
     
     def add_samples(self, *args, **kwargs):
         plotter.add_samples(self.subplot_samples, *args, **kwargs)

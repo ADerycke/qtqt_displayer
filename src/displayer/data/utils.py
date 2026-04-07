@@ -95,5 +95,3 @@ def find_envelop(dataframe_column, value):
         if right < len(dataframe_column)-1 : right += 1
             
     return start, end
-
-

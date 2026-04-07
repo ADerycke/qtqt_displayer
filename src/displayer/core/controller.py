@@ -396,8 +396,9 @@ class InvertProcess(QThread):
                 self.error_handler('drawing time_scale')
             
             self.send_signal(6, 'writting information')
-            try:
-                self.displayer_fig.add_information(info_list)
+            try:                
+                self.displayer_fig.add_hist_information(info_list)
+                self.displayer_fig.add_plotted_information(self.parameters)
                 self.displayer_fig.add_samples(sample_list, color_list)
             except:
                 self.error_handler('writting information')

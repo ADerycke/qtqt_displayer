@@ -49,6 +49,16 @@ def get_colorlist(data, tab_color_init, *, color_list=''):
 # === GET INFO ===
 
 def get_inversion_info(data):
+    """
+    Parameters
+    ----------
+    data : dataframe of the full summary file
+
+    Returns
+    -------
+    info_list : list of the data inversion parameters and statistiques
+
+    """
     
     info_list = {}
     # empty_dataframe
@@ -61,6 +71,7 @@ def get_inversion_info(data):
     info_loc1 = data[data[data.columns[0]].str.contains('Monitoring')]
     info_1 = data[info_loc1.index[0]+1 : info_loc1.index[0]+2]
     info_1 = info_1.squeeze()
+    
     info_1 = info_1.replace(' =', '_=').replace('  ', ' ')
     info_1 = info_1.split(' ')
     info_2 = data[info_loc1.index[0]+2 : info_loc1.index[0]+3]
@@ -78,6 +89,7 @@ def get_inversion_info(data):
     if info_loc3.empty:
         info_4 = DataFrame(empty_dataframe)
         info_5 = DataFrame(empty_dataframe)
+        info_9 = DataFrame(empty_dataframe)
     else:
         info_4 = data[info_loc3.index[0]+1 : info_loc3.index[0]+2]
         info_4 = info_4.squeeze()
@@ -87,6 +99,8 @@ def get_inversion_info(data):
         info_5 = info_5.squeeze()
         info_5 = info_5.replace(' =', '_=').replace('  ', ' ')
         info_5 = info_5.split(' ')
+        info_9 = info_loc3.squeeze()
+        info_9 = info_9.split(' ')
     
     info_6 = data.iloc[-2]
     info_6 = info_6.squeeze()
@@ -128,6 +142,7 @@ def get_inversion_info(data):
     info_list['Max allowable dTdt'] = round(float(info_3[3]))
     info_list['Rate tolerance'] = round(float(info_3[9]))
     
+    info_list['Adaptive time step'] = round(float(info_9[1]))
     info_list['Temperature steps diffusion Ap'] = round(float(info_4[5]))
     info_list['Temperature steps diffusion Other'] = round(float(info_4[8]))
     info_list['Temperature steps radi dam Ap'] = round(float(info_5[6]))
@@ -158,12 +173,18 @@ def get_inversion_info(data):
     info_list['Acceptance He'] = utils.def_valeur(info_8.ratio_accep.iloc[6],'')
     info_list['Acceptance VR'] = utils.def_valeur(info_8.ratio_accep.iloc[7],'')
     
+    # edit the dict to rend it easely understandable
     if info_list['Acceptance FT'] == '': info_list['FT resample'] = 'no'
     if info_list['Acceptance He'] == '': info_list['He resample'] = 'no'
     if info_list['Acceptance VR'] == '': info_list['VR resample'] = 'no'
+    if info_list['Adaptive time step'] == 1 :
+        info_list['Adaptive time step'] = 'no'
+    else:
+        info_list['Adaptive time step'] = 'yes'
     
     if info_list['FT resample'] == 'no': info_list['Acceptance FT'] = ''
     if info_list['He resample'] == 'no': info_list['Acceptance He'] = ''
+    if info_list['offset gaussian'] == 'no': info_list['Acceptance offset'] = ''
     if info_list['VR resample'] == 'no': info_list['Acceptance VR'] = ''
         
     return info_list

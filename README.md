@@ -17,6 +17,16 @@ It provides both a graphical user interface (GUI) and a command-line mode to exp
 
 ---
 
+## VERSION - UP DATE
+
+* 1.0.1 : 
+    - update of information display about the data inversion (all details are now printed)
+    - remove exception for MacOS in saver.py function
+    - change requirement to allow package installation only for code (PyQt5) vs gui (PySide6)
+    
+* 1.0.0 : first realease of the official package
+
+
 ## 📦 Project Structure
 
 ```

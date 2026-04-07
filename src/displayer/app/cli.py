@@ -132,7 +132,8 @@ def process_one_file(filepath, export_paths, inversion_param, *, tab_color=None,
                       history=inversion_param['chemin'], gradiant=inversion_param['gradiant'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'],
                       colormap=inversion_param['colormap'], vertical_profile=inversion_param['vertical_profile'])
     displayer_figure.plot_time_scale(data_inversion.tabl_tT_history, niveau=inversion_param['niveau'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'])
-    displayer_figure.add_information(data_inversion.info_list)
+    displayer_figure.add_hist_information(data_inversion.info_list)
+    displayer_figure.add_plotted_information(inversion_param)
     displayer_figure.add_samples(data_inversion.sample_list, data_inversion.color_list)
     displayer_figure.canvas.draw()
 
