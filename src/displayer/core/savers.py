@@ -12,10 +12,15 @@ import sys
 import os
 
 #for the Qt window
+as_Qt = True
 try:
     from PySide6.QtWidgets import QApplication, QFileDialog
 except:
-    from PyQt5.QtWidgets import QApplication, QFileDialog
+    try:
+        from PyQt5.QtWidgets import QApplication, QFileDialog
+    except:
+        as_Qt = False
+        print("Warning : no python Qt installation available so don't use the interface")
 
         
 def get_file(*, racine=''):
@@ -67,7 +72,7 @@ def get_output_filepath(filepath, *, image_format = ".png", table_format = '.xls
     file_name = filepath.replace(" ","_")
     file_name = file_name.replace(".txt",'')
     
-    if not autopath :
+    if not autopath and not as_Qt :
         folder = get_directory(racine=folder)
     
     if groupe :
