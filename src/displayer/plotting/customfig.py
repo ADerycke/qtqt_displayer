@@ -11,6 +11,8 @@ Created on Wed Oct 29 11:30:48 2025
 from matplotlib.gridspec import GridSpec
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
+from matplotlib.pyplot import rcParams
+
 
 #import internal logic
 from . import plotter
@@ -21,6 +23,7 @@ class InverseFig(Figure):
     def __init__(self, *args, **kwargs):
         super().__init__(figsize=(17, 6))
         
+        self.set_chart_parameters()
         self.tight_layout()
         self.subplots_adjust(left=0.04, right=0.96, bottom=0.1, top=0.9)
         
@@ -51,9 +54,31 @@ class InverseFig(Figure):
         self.subplot_plot_parameters = self.add_subplot(structure[5, 1])
         self.subplot_hist_parameters = self.add_subplot(structure[5, 3:7])
         
+        #store information
+        self.tT_min_time = -1
+        self.tT_max_time = -1
+        
         #update layout
         self.init_layout()
-    
+
+    def set_chart_parameters(self, *, font_size = 11):
+        params = {
+                 'legend.title_fontsize': font_size + 2,
+                 'legend.fontsize': font_size,
+                 'axes.labelsize': font_size,
+                 'axes.titlesize':font_size + 2,
+                 'xtick.labelsize':font_size - 2,
+                 'ytick.labelsize':font_size - 2,
+                 'font.size':font_size - 2,
+                 "axes.titlecolor": "black",
+                 "axes.labelcolor": "black",
+                 "xtick.color": "black",
+                 "ytick.color": "black",
+                 
+                 #'figure.dpi': 300,
+                 }
+        rcParams.update(params)
+ 
     def init_layout(self):
         # chart layout
         plotter.layout_iteration([self.subplot_like, self.subplot_post])
@@ -78,8 +103,8 @@ class InverseFig(Figure):
     def plot_histoire(self, *args, **kwargs):
         plotter.plot_histoire([self, self.subplot_history, self.subplot_history_bis, self.subplot_hist_legen], *args, **kwargs)
     
-    def plot_time_scale(self, *args, **kwargs):
-        plotter.plot_time_scale(self.subplot_timescale, *args, **kwargs)
+    def plot_time_scale(self,  *args, **kwargs):
+        plotter.plot_time_scale(self.subplot_timescale, time_min=self.tT_min_time, time_max=self.tT_max_time ,*args, **kwargs)
 
     def add_hist_information(self, *args, **kwargs):
         plotter.add_hist_information(self.subplot_hist_parameters, *args, **kwargs)
@@ -89,15 +114,20 @@ class InverseFig(Figure):
     
     def add_samples(self, *args, **kwargs):
         plotter.add_samples(self.subplot_samples, *args, **kwargs)
-
-
+               
+        
 class ResampleFig(Figure):
     
-    def __init__(self, *args, num_graphs=2, **kwargs):
+    def __init__(self, *args, num_graphs=2, font_size=11, **kwargs):
         super().__init__(figsize=(10, num_graphs * 3))
         
+        self.set_chart_parameters()
+        self.tight_layout()
+        
         self.num_graphs = num_graphs
+        self.font_size = font_size
         self.axs = self.subplots(self.num_graphs, 1, sharex=True)
+        
         self.linestyles = ['-', '--', '-.', ':',
                       (0, (5, 1)),
                       (0, (3, 5, 1, 5)),
@@ -107,14 +137,38 @@ class ResampleFig(Figure):
                       (0, (5, 10))
                       ]
     
+    def set_chart_parameters(self, *, font_size = 11):
+        params = {
+                 'legend.title_fontsize': font_size + 2,
+                 'legend.fontsize': font_size,
+                 'axes.labelsize': font_size,
+                 'axes.titlesize':font_size + 2,
+                 'xtick.labelsize':font_size - 2,
+                 'ytick.labelsize':font_size - 2,
+                 'font.size':font_size - 2,
+                 "axes.titlecolor": "black",
+                 "axes.labelcolor": "black",
+                 "xtick.color": "black",
+                 "ytick.color": "black",
+                 
+                 #'figure.dpi': 300,
+                 }
+        rcParams.update(params)
+        
     def update_size(self, num_graphs):
         self.num_graphs = num_graphs
         self.clf()
+        
+        self.set_chart_parameters()
+        self.tight_layout()
+        
         self.set_size_inches(10, self.num_graphs * 3, forward=True)
         self.axs = self.subplots(self.num_graphs, 1, sharex=True)
-
-    def plot_resample(self, data_init, data_resample, sample_list, color_list):
-        num_sample = data_init.shape[0] 
+        
+                
+    def plot_resample(self, data_init, data_resample, sample_list):
+                
+        num_sample = data_init.shape[0]
 
         #premier graph likelihood
         graph_pos = 0
@@ -128,7 +182,7 @@ class ResampleFig(Figure):
         for i in range(num_sample):
             x = data_resample[i, 0, :].astype(int)
             y = data_resample[i, 2, :].astype(float)
-            self.axs[graph_pos].plot(x, y, linestyle="-", color=color_list[sample_list[i]['name']])
+            self.axs[graph_pos].plot(x, y, linestyle="-", color=sample_list.get_color_by_id(i))
         self.axs[graph_pos].set_ylabel('FT kinetic\nparameters')
         
         # Boucle sur chaque ligne de data_init
@@ -139,16 +193,19 @@ class ResampleFig(Figure):
             if tempo_nb_he > 0 :
                 graph_pos = 1 + graph_pos
                 # Boucle sur le nombre de courbes à tracer pour ce subplot
+                tab_eU_tempo = sample_list.get_tabeU_by_id(i)
+
                 for j in range(tempo_nb_he):
                     x = data_resample[i, 0, :].astype(int)
                     y = data_resample[i, 3 + j, :].astype(float)
-                    y_bis = sample_list[i]['eU_' + str(j)] * (1+(y/100))
+                    y_bis = tab_eU_tempo[j] * (1+(y/100))
 
                     # Tracer la courbe dans le subplot correspondant à l'index i
-                    self.axs[graph_pos].plot(x, y_bis, linestyle=self.linestyles[j % len(self.linestyles)], color=color_list[sample_list[i]['name']])
+                    self.axs[graph_pos].plot(x, y_bis, linestyle=self.linestyles[j % len(self.linestyles)], color=sample_list.get_color_by_id(i))
 
                 # Ajouter des labels et une légende à chaque subplot
-                self.axs[graph_pos].set_ylabel(sample_list[i]['name'] + '\neU [ppm]')
+                sample = sample_list.get_sample_by_id(i)
+                self.axs[graph_pos].set_ylabel(sample.name_ + '\neU [ppm]')
         
         num_graphs = graph_pos + 1
         
@@ -186,3 +243,4 @@ class ResampleFig(Figure):
                 self.axs[i].set_xlabel('iteration')
                 self.axs[i].tick_params(axis='x', labeltop=False, labelbottom=True)
                 self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
+

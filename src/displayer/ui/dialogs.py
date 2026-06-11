@@ -11,8 +11,11 @@ from PySide6.QtGui import QCloseEvent, QColor, QImage, QPixmap
 from PySide6.QtCore import Qt, Signal
 
 #for plotting 
-from matplotlib.colors import TABLEAU_COLORS, hex2color, to_hex 
+from matplotlib.colors import hex2color, to_hex 
 
+
+# internal logic
+from displayer.data.datatypes import Sample
 
 # == Class HelpWindows ==
 class HelpWindow(QDialog):
@@ -97,11 +100,11 @@ class HelpWindow(QDialog):
 class ColorSelectionDialog(QDialog):
     send_data = Signal(str, object)
     
-    def __init__(self, tab_sample, color_list, parent=None):
+    def __init__(self, samples_list, color_list, parent=None):
         super().__init__(parent)
         
         self.setWindowTitle('Select samples colors:')
-        self.tab_sample = tab_sample
+        self.samples_list = samples_list
         self.color_list = color_list
         
         self.elements = []
@@ -115,22 +118,22 @@ class ColorSelectionDialog(QDialog):
         self.layout.addWidget(self.add_button)
 
         # init le tableau de couleur si non vide vide
-        if len(self.tab_sample) > 0 :
-            for n in self.tab_sample:
-                self.add_sample()
+        if self.samples_list != None :
+            for sample in self.samples_list.samples_:
+                self.add_sample(sample=sample)
         else:
-            self.tab_sample = self.generate_color_table()
             self.add_sample()
 
-    def add_sample(self):
-        # find the new name / color to display
-        sample_index = len(self.elements)
-        info_sample = list(self.tab_sample)[sample_index]
+    def add_sample(self, *, sample=None):
+        
+        if sample == None:
+            sample_index = len(self.elements)
+            sample = Sample('','/sample '+str(sample_index), sample_index,self.color_list[sample_index])
         
         # input the parameters
-        element_name = str(info_sample)
+        element_name = sample.name_
         self.elements.append(element_name)
-        color = to_hex(self.tab_sample[str(info_sample)])
+        color = to_hex(sample.color_)
         self.colors.append(color)
         
         # Création du layout et des widgets pour le nouvel élément
@@ -148,7 +151,7 @@ class ColorSelectionDialog(QDialog):
         element_layout.addWidget(button)
         
         # Ajout du layout de l'élément au layout principal
-        self.layout.addLayout(element_layout)
+        self.layout.addLayout(element_layout)        
 
     def select_color(self):
         button = self.sender()
@@ -157,23 +160,16 @@ class ColorSelectionDialog(QDialog):
         if color.isValid():
             color_name = color.name()
             button.setStyleSheet(f"background-color: {color_name}; color: rgba(0, 0, 0, 0)")
-            self.tab_sample[button.text()] = hex2color(color_name)
-            self.color_list[button.text()] = hex2color(color_name)
-            self.send_data.emit("color_picker", self.color_list)
-
-    def generate_color_table(self, *, nb=50):
-        #Generate a base color list
-        tab_color = {}
-        n=1
-        for i in range(nb):
-            for item, value in TABLEAU_COLORS.items():
-                tab_color["sample " + str(n)] = hex2color(value)
-                n = n + 1
-        
-        return tab_color
+            
+            self.color_list[index] = hex2color(color_name)
+            
+            sample = self.samples_list.get_sample_by_name(button.text())
+            sample.color_ = hex2color(color_name)
+            
+            #self.send_data.emit("color_picker", self.color_list)
       
     def closeEvent(self, event):
-        self.send_data.emit("color_picker", self.color_list)
+        self.send_data.emit("color_picker",'')
         
 
 # == Class ProgressWindow == creation et gestion de la barre de progresion

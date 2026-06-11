@@ -4,47 +4,46 @@
 import numpy
 from xarray import DataArray
 from pandas import DataFrame
-from pandas import to_numeric
+from pandas import to_numeric, concat
+from pandas import Series
+
 
 #internal lib
 from . import utils
-
-
+from .datatypes import SampleList
 
 # === GET SAMPLES color and name ===
 
-def get_colorlist(data, tab_color_init, *, color_list=''):
-    
-    nb_file = int(data.iloc[0])
-    files = data[1 : nb_file + 1]
-    #files = files.squeeze()
+def get_samples(data, summary_name, *, tab_color=None, tab_sample=None):
 
-    for index, row in files.iterrows():
-        #row = row.str.replace(".txt","")
-        row = row.str.replace(" ","_")
-        test_1 = row.str.split(pat='/',n=-1, expand=True)
-        test_2 = test_1[test_1.shape[1]-1].values
-        nom_ech = test_2[0].split('.txt')
-        files.loc[index,:] = nom_ech[0]
+    if tab_sample is None:
+        tab_sample = SampleList(summary_name)
+    else:
+        #update the summary name to avoid duplicate ID
+        tab_sample.summary_name_ = summary_name
+        
+    if tab_color is None:
+        tab_color = utils.init_color_table()
+
+    # --- Nombre de fichiers ---
+    nb_file = int(data.iloc[0, 0])
+
+    # --- Extraction des noms ---
+    filespaths = data.iloc[1: nb_file + 1, 0].astype(str)
     
-    if color_list == '': color_list = {} 
-    sample = {}
+    filespaths = (
+        filespaths
+        # split information
+        .str.split(' : ')
+        .str[0]
+        )
     
-    n=1
-    
-    for i in tab_color_init:
-        if n > nb_file:
-            pass
-        else:
-            nom = str(files.loc[n].values).replace("(",'').replace(")",'').replace("[","").replace("]","").replace("'","").replace(".txt","").replace("_"," ")
-            if nom in color_list :
-                pass
-            else:
-                color_list[nom] = tab_color_init[i]
-            sample[n - 1] = {'id' : n-1, 'name' : nom, 'color' : color_list[nom]}
-            n=n+1     
-            
-    return color_list, sample
+
+    # built or complete the samples list 
+    for i, filepath in enumerate(filespaths):
+        tab_sample.add_sample(filepath, i, tab_color)
+
+    return tab_color, tab_sample
 
 # === GET INFO ===
 
@@ -121,71 +120,66 @@ def get_inversion_info(data):
         info_list['Gaussian exploration'] = 'no'
     else:
         info_list['Gaussian exploration'] = 'yes'
+    
     if int(info_1[11]) == 0:
         info_list['Keep complex history'] = 'yes'
     else:
         info_list['Keep complex history'] = 'no'
-        
-    if 'nan' or '-' in info_2[5]:
-        info_list['offset gaussian'] = 'no'
-    elif float(info_2[5]) == 0:
-        info_list['offset gaussian'] = 'no'
-    else:
-        info_list['offset gaussian'] = str(round(float(info_2[5]),0)) + '°/km'
-    info_list['time gaussian'] = float(info_2[1])
-    info_list['temperature gaussian'] = float(info_2[3])
-        
+    
     if int(info_3[6]) == 0:
         info_list['allow reheating'] = 'yes'
     else:
         info_list['allow reheating'] = 'no'
-    info_list['Max allowable dTdt'] = round(float(info_3[3]))
-    info_list['Rate tolerance'] = round(float(info_3[9]))
-    
-    info_list['Adaptive time step'] = round(float(info_9[1]))
-    info_list['Temperature steps diffusion Ap'] = round(float(info_4[5]))
-    info_list['Temperature steps diffusion Other'] = round(float(info_4[8]))
-    info_list['Temperature steps radi dam Ap'] = round(float(info_5[6]))
-    info_list['Temperature steps radi dam Other'] = round(float(info_5[9]))
-    
-    if round(float(info_6[0]),0)/60/60 >= 1:
-        info_list['time burnin'] = str(round(float(info_6[0])/60/60,1)) + ' h.'
-    else:
-        info_list['time burnin'] = str(round(float(info_6[0])/60)) + ' min.'
         
-    if round(float(info_7[0]),0)/60/60 >= 1:
-        info_list['time total'] = str(round(float(info_7[0])/60/60,1)) + ' h.'
-    else:
-        info_list['time total'] = str(round(float(info_7[0])/60)) + ' min.'
+    info_list['offset gaussian'] = float(info_2[5])
+    info_list['time gaussian'] = float(info_2[1])
+    info_list['temperature gaussian'] = float(info_2[3])
         
-    info_list['Acceptance time'] = round(float(info_8.ratio_accep.iloc[0]) * 100) 
-    info_list['Acceptance temperature'] = round(float(info_8.ratio_accep.iloc[1]) * 100)
-    info_list['Acceptance offset'] = utils.def_valeur(info_8.ratio_accep.iloc[2],'')
+    info_list['Max allowable dTdt'] = float(info_3[3])
+    info_list['Rate tolerance'] = float(info_3[9])
     
-    info_list['Acceptance Birth'] = round(float(info_8.ratio_accep.iloc[3]) * 100)
-    info_list['Acceptance Death'] = round(float(info_8.ratio_accep.iloc[4]) * 100)
-    
-    info_list['FT resample'] = utils.def_valeur(info_2[16], 'no')
-    info_list['He resample'] = utils.def_valeur(info_2[19], 'no')
-    info_list['VR resample'] = utils.def_valeur(info_2[22], 'no')
-    
-    info_list['Acceptance FT'] = utils.def_valeur(info_8.ratio_accep.iloc[5],'')
-    info_list['Acceptance He'] = utils.def_valeur(info_8.ratio_accep.iloc[6],'')
-    info_list['Acceptance VR'] = utils.def_valeur(info_8.ratio_accep.iloc[7],'')
-    
-    # edit the dict to rend it easely understandable
-    if info_list['Acceptance FT'] == '': info_list['FT resample'] = 'no'
-    if info_list['Acceptance He'] == '': info_list['He resample'] = 'no'
-    if info_list['Acceptance VR'] == '': info_list['VR resample'] = 'no'
-    if info_list['Adaptive time step'] == 1 :
+    if int(info_9[1]) == 1 :
         info_list['Adaptive time step'] = 'no'
     else:
         info_list['Adaptive time step'] = 'yes'
+        
+    info_list['Temperature steps diffusion Ap'] = float(info_4[5])
+    info_list['Temperature steps diffusion Other'] = float(info_4[8])
+    info_list['Temperature steps radi dam Ap'] = float(info_5[6])
+    info_list['Temperature steps radi dam Other'] = float(info_5[9])
     
-    if info_list['FT resample'] == 'no': info_list['Acceptance FT'] = ''
-    if info_list['He resample'] == 'no': info_list['Acceptance He'] = ''
-    if info_list['offset gaussian'] == 'no': info_list['Acceptance offset'] = ''
-    if info_list['VR resample'] == 'no': info_list['Acceptance VR'] = ''
+    info_list['time burnin'] = float(info_6[0])
+    info_list['time total'] = float(info_7[0])
+
+    info_list['Acceptance time'] = float(info_8.ratio_accep.iloc[0])
+    info_list['Acceptance temperature'] = float(info_8.ratio_accep.iloc[1])
+    
+    if '#' in info_8.ratio_accep.iloc[2]:
+        info_list['Acceptance offset'] = 0
+    else:
+        info_list['Acceptance offset'] = float(info_8.ratio_accep.iloc[2])
+    
+    info_list['Acceptance Birth'] = float(info_8.ratio_accep.iloc[3])
+    info_list['Acceptance Death'] = float(info_8.ratio_accep.iloc[4])
+    
+    info_list['FT resample'] = float(info_2[16])
+    info_list['He resample'] = float(info_2[19])
+    info_list['VR resample'] = float(info_2[22])
+    
+    info_list['Acceptance FT'] = float(info_8.ratio_accep.iloc[5])
+    info_list['Acceptance He'] = float(info_8.ratio_accep.iloc[6])
+    info_list['Acceptance VR'] = float(info_8.ratio_accep.iloc[7])
+    
+    # edit the dict to rend it easely understandable
+    if info_list['Acceptance FT'] == 0 : info_list['FT resample'] = 0
+    if info_list['Acceptance He'] == 0 : info_list['He resample'] = 0
+    if info_list['Acceptance VR'] == 0 : info_list['VR resample'] = 0
+    if info_list['Acceptance offset'] == 0 : info_list['offset gaussian'] = 0
+    
+    # if info_list['FT resample'] == 'no': info_list['Acceptance FT'] = ''
+    # if info_list['He resample'] == 'no': info_list['Acceptance He'] = ''
+    # if info_list['offset gaussian'] == 'no': info_list['Acceptance offset'] = ''
+    # if info_list['VR resample'] == 'no': info_list['Acceptance VR'] = ''
         
     return info_list
 
@@ -202,7 +196,7 @@ def extract_tT_history(data):
     Chain_tab = Chain_tab.apply(to_numeric, errors='coerce')
     #tqdm_stream.write(' 40%]')
     Chain_tab = Chain_tab.round(2)
-    nb_ech = data.iloc[0].values
+    nb_ech = data.iloc[0,0]#.values
     #tqdm_stream.write(' 60%]')
    
     # HISTOIRE : convertir le format QTQt vers un format utilsable en passant par un array 3D
@@ -240,685 +234,995 @@ def extract_tT_history(data):
     return data_tT
 
 
-
 # === GRID === # extract_grid_history(data)
 
 def extract_grid_history(data):
-    #nb of sample
-    sample_loc = data[data[data.columns[0]].str.contains('Sample')]
-    nb_sample = sample_loc.shape[0]
 
-    #read the matrix (nb of point of time and temperature)
-    nb_time = int(data.iloc[1].str.split(n=-1, expand=True)[0])
-    time_step = float(data.iloc[1].str.split(n=-1, expand=True)[2]) #size in Ma of a time step
-    nb_tempe = int(data.iloc[1].str.split(n=-1, expand=True)[1])
-    max_tempe = int(data.iloc[1].str.split(n=-1, expand=True)[3]) #the matrix include max_tempe point above 0 ???
+    # --- Identifier les samples ---
+    first_col = data.iloc[:, 0].astype(str)
+    sample_indices = data[first_col.str.contains('Sample', na=False)].index
+    nb_sample = len(sample_indices)
 
-    #init the t(T) envelopp
-    enveloppe = {
-        'Y_068_min': numpy.empty(nb_time),
-        'Y_068_max': numpy.empty(nb_time),
-        'Y_096_min': numpy.empty(nb_time),
-        'Y_096_max': numpy.empty(nb_time),
-        'Y_100_min': numpy.empty(nb_time),
-        'Y_100_max': numpy.empty(nb_time)
-    }
+    # --- PASS 1 : récupérer les métadonnées et tailles max ---
+    meta_per_sample = []
+    max_time = 0
+    max_tempe = 0
 
-    #store in a xarray as usual
-    Time = range(nb_time)
-    Tempe = range(nb_tempe)
-    Sample = range(nb_sample)
+    for index in sample_indices:
+        tab = data.iloc[index + 1].astype(str).str.split(expand=True).to_numpy()[0]
+
+        nb_time = int(tab[0])
+        nb_tempe = int(tab[1])
+        time_step = float(tab[2])
+        max_temp_sample = int(tab[3])
+
+        meta_per_sample.append((nb_time, nb_tempe, time_step, max_temp_sample))
+
+        max_time = max(max_time, nb_time)
+        max_tempe = max(max_tempe, nb_tempe)
+
+    # --- Initialisation xarray avec padding ---
     data_stat = DataArray(
-        data=numpy.full((len(Sample),len(Tempe),len(Time)), numpy.nan),
-        coords={'X': Time, 'Y': Tempe, 'Sample': Sample},
-        dims=('Sample','Y', 'X')
+        data=numpy.full((nb_sample, max_tempe, max_time), numpy.nan),
+        coords={
+            'Sample': range(nb_sample),
+            'Y': range(max_tempe),
+            'X': range(max_time)
+        },
+        dims=('Sample', 'Y', 'X')
     )
 
-    #file the xarray
-    n = 0
-    for index, row in sample_loc.iterrows():
-        #get the sample matrix
-        data_tempo = data.iloc[index+2:index+2+nb_time]
-        data_tempo = data_tempo.astype(str)
-        data_tempo = data_tempo[data_tempo.columns[0]].str.split(n=-1, expand=True)
-        #get the nb of path and calcuate the proporation in %
-        num_path = data_tempo.iloc[:,-1]
-        data_tempo = data_tempo.iloc[:, :-1]
-        for i in data_tempo.columns:
-            data_tempo[i] = data_tempo[i].astype(int) / num_path.astype(int)
-        #transpose to get the proper x-y axis
-        data_tempo = data_tempo.transpose()
+    enveloppes = []
+    infos = []
 
-        #determine the t(T) path envelopp
-        m=0
-        if n == 0 :
-            for i in data_tempo.columns:
-                enveloppe['Y_068_min'][m], enveloppe['Y_068_max'][m] = utils.find_envelop(data_tempo[i], 0.6827)
-                enveloppe['Y_096_min'][m], enveloppe['Y_096_max'][m] = utils.find_envelop(data_tempo[i], 0.9545)
-                enveloppe['Y_100_min'][m], enveloppe['Y_100_max'][m] = utils.find_envelop(data_tempo[i], 0.9973)
-                m=m+1
+    # --- PASS 2 : traitement des données ---
+    for n, (index, meta) in enumerate(zip(sample_indices, meta_per_sample)):
 
-        # go from 0 - 1 to 0-100 for percentage
-        data_tempo = data_tempo * 100
-        data_stat[n,:,:]=data_tempo
-        n=n+1
+        nb_time, nb_tempe, time_step, max_temp_sample = meta
 
-    # determine the differente X% enveloppe
-    #remove the +100°C that make no sense here ?? care only ok if stage remaine 1°C
-    enveloppe['Y_068_min'] = enveloppe['Y_068_min']-max_tempe
-    enveloppe['Y_068_max'] = enveloppe['Y_068_max']-max_tempe
-    enveloppe['Y_096_min'] = enveloppe['Y_096_min']-max_tempe
-    enveloppe['Y_096_max'] = enveloppe['Y_096_max']-max_tempe
-    enveloppe['Y_100_min'] = enveloppe['Y_100_min']-max_tempe
-    enveloppe['Y_100_max'] = enveloppe['Y_100_max']-max_tempe
-    
-    info = [nb_time, time_step, nb_tempe, max_tempe]
-    
-    return data_stat, enveloppe, info
+        # --- enveloppe pour ce sample ---
+        enveloppe = {
+            'Y_068_min': numpy.empty(nb_time),
+            'Y_068_max': numpy.empty(nb_time),
+            'Y_096_min': numpy.empty(nb_time),
+            'Y_096_max': numpy.empty(nb_time),
+            'Y_100_min': numpy.empty(nb_time),
+            'Y_100_max': numpy.empty(nb_time)
+        }
 
+        info = {
+                "nb_time": nb_time,
+                "nb_tempe": nb_tempe,
+                "time_step": time_step,
+                "max_tempe": max_temp_sample
+                }
 
+        # --- lecture bloc ---
+        block = data.iloc[index + 2:index + 2 + nb_time]
+
+        block = (
+            block.iloc[:, 0]
+            .astype(str)
+            .str.split(expand=True)
+        )
+
+        num_path = block.iloc[:, -1].astype(int)
+        values = block.iloc[:, :-1].astype(int)
+
+        # normalisation
+        values = values.div(num_path, axis=0)
+
+        # orientation correcte
+        values = values.T
+
+        # --- calcul enveloppe ---
+        for m, col in enumerate(values.columns):
+            v = values[col]
+            enveloppe['Y_068_min'][m], enveloppe['Y_068_max'][m] = utils.find_envelop(v, 0.6827)
+            enveloppe['Y_096_min'][m], enveloppe['Y_096_max'][m] = utils.find_envelop(v, 0.9545)
+            enveloppe['Y_100_min'][m], enveloppe['Y_100_max'][m] = utils.find_envelop(v, 0.9973)
+
+        # correction température
+        for key in enveloppe:
+            enveloppe[key] -= max_temp_sample
+
+        # stockage enveloppe + info
+        enveloppes.append(enveloppe)
+        infos.append(info)
+
+        # --- stockage données ---
+        values *= 100
+        data_stat[n, :nb_tempe, :nb_time] = values.to_numpy()
+
+    return data_stat, enveloppes, infos
 
 # === CONSTRAIN === # def extract_constrain(data)
 
 def extract_constrain(data):
-    # retriver the input constrains
-    constrain_loc = data[data[data.columns[0]].str.contains('Setting tt points 1 =')]
+    col = data.columns[0]
 
-    test = constrain_loc.squeeze()
-    constrain_nb = test.split(' ')
-    constrain = data[constrain_loc.index[0] + 1 : constrain_loc.index[0] + 1 + int(constrain_nb[5])]
+    # =========================
+    # CONTRAINTES PRINCIPALES
+    # =========================
+    constrain_loc = data[data[col].str.contains('Setting tt points 1 =', na=False)]
 
-    constrain_tab = constrain.squeeze()
-    if isinstance(constrain_tab,str):
-        constrain_tab = constrain_tab.split()
-        constrain_tab = [['Time', 'dTime', 'Temp', 'dTemp','?'],constrain_tab]
-        constrain_tab = DataFrame(constrain_tab[1:], columns=constrain_tab[0])
+    if constrain_loc.empty:
+        constrain_tab = DataFrame(columns=["Time", "dTime", "Temp", "dTemp", "?"])
     else:
-        constrain_tab = constrain_tab.str.split(n=-1, expand=True)
-        constrain_tab.rename(columns={0:"Time",1:"dTime",2:"Temp",3:"dTemp"},inplace=True)
-    
-    # retriver the sample constrains
-    sample_constrain_loc = data[data[data.columns[0]].str.contains('Predep')]
-    sample_constrain_tab = sample_constrain_loc.squeeze()
-    sample_constrain_tab = sample_constrain_tab.str.split(n=-1, expand=True)
-    sample_constrain_tab.rename(columns={1:"Time",2:"dTime",3:"Temp",4:"dTemp"},inplace=True)
+        test = constrain_loc.iloc[0, 0]
+        constrain_nb = int(test.split()[5])
 
-    # merge data in a xarray
-    X = range(5) #time, dtime, temperature, dtemperature, type
-    Y = range(len(constrain_tab) + len(sample_constrain_tab)) #
-
-    data_constrain = DataArray(
-        data=numpy.full((len(Y),len(X)), numpy.nan, dtype=object),
-        coords={'data': X, 'constrain_n': Y},
-        dims=('constrain_n', 'data')
-    )
-
-    i=0
-    for index, row in constrain_tab.iterrows():
-        data_constrain[i,0]=row.Time
-        data_constrain[i,1]=row.dTime
-        data_constrain[i,2]=row.Temp
-        data_constrain[i,3]=row.dTemp
-        if i == 0 : 
-            data_constrain[i,4]="explo_box"
+        raw_constrain = data.iloc[
+            constrain_loc.index[0] + 1 :
+            constrain_loc.index[0] + 1 + constrain_nb
+        ].squeeze() 
+        
+        if isinstance(raw_constrain, str):
+            parts = raw_constrain.split()
+            constrain_tab = DataFrame(
+                [parts],
+                columns=["Time", "dTime", "Temp", "dTemp", "?"]
+            )
         else:
-            data_constrain[i,4]="external_contraint"
-        i=i+1
+            constrain_tab = (
+                raw_constrain
+                .str.split(' ', expand=True)
+                #.iloc[:, :5]
+            )
+            constrain_tab.columns = ["Time", "dTime", "Temp", "dTemp", "?"]
+
+    # =========================
+    # SAMPLE CONSTRAINTS Not usable by now
+    # =========================
+    # sample_constrain_tab = data[data[col].str.contains('Setting tt points', na=False) &
+    #                            ~data[col].str.contains('Setting tt points = 1', na=False)].squeeze()
     
-    for index, row in sample_constrain_tab.iterrows():
-        data_constrain[i,0]=row.Time
-        data_constrain[i,1]=row.dTime
-        data_constrain[i,2]=row.Temp
-        data_constrain[i,3]=row.dTemp
-        data_constrain[i,4]="sample_contraint"
-        i=i+1
+    sample_constrain_tab = data[data[col].str.contains('an impossible charatere suit', na=False)]
     
+    
+    if isinstance(sample_constrain_tab, Series):
+        sample_constrain_tab = sample_constrain_tab.to_frame().T
+
+    sample_constrain_list = []
+    for _, row in sample_constrain_tab.iterrows():
+        test = row.iloc[0]
+        try:
+            constrain_nb = int(test.split()[5])
+        except (IndexError, ValueError):
+            continue
+
+        tempo_data = data.iloc[
+            constrain_loc.index[0] + 1 + 1 : #ignorer the first row that is the explo box
+            constrain_loc.index[0] + 1 + constrain_nb
+        ].squeeze()
+
+        if isinstance(tempo_data, str):
+            parts = tempo_data.split()
+            df = DataFrame(
+                [parts],
+                columns=["Time", "dTime", "Temp", "dTemp", "?"]
+            )
+        else:
+            df = (
+                tempo_data
+                .str.split(' ', expand=True)
+                #.iloc[:, :4]
+            )
+            df.columns = ["Time", "dTime", "Temp", "dTemp", "?"]
+
+        sample_constrain_list.append(df)
+
+    if sample_constrain_list:
+        sample_constrain_tab = concat(sample_constrain_list, ignore_index=True)
+    else:
+        sample_constrain_tab = DataFrame(columns=["Time", "dTime", "Temp", "dTemp", "?"])
+
+    # =========================
+    # CONCAT LOGIQUE
+    # =========================
+    def to_records(df, label_first=None, label_other=None):
+        records = []
+        for i, row in enumerate(df.itertuples(index=False)):
+            records.append([
+                row.Time,
+                row.dTime,
+                row.Temp,
+                row.dTemp,
+                label_first if i == 0 else label_other
+            ])
+        return records
+
+    all_rows = []
+    if not constrain_tab.empty:
+        all_rows += to_records(
+            constrain_tab,
+            label_first="explo_box",
+            label_other="external_contraint"
+        )
+
+    if not sample_constrain_tab.empty:
+        all_rows += to_records(
+            sample_constrain_tab,
+            label_first="sample_contraint",
+            label_other="sample_contraint"
+        )
+
+    # =========================
+    # DATAARRAY FINAL
+    # =========================
+    if not all_rows:
+        X = range(5)
+        Y = range(1)
+        data_constrain = DataArray(
+            data=numpy.full((len(Y), len(X)), numpy.nan, dtype=object),
+            coords={'data': X, 'constrain_n': Y},
+            dims=('constrain_n', 'data')
+        )
+    else:
+        X = range(5)
+        Y = range(len(all_rows))
+        data_constrain = DataArray(
+            data=numpy.full((len(Y), len(X)), numpy.nan, dtype=object),
+            coords={'data': X, 'constrain_n': Y},
+            dims=('constrain_n', 'data')
+        )
+        data_constrain[:, :] = all_rows
+
     return data_constrain
 
 
-# === PREDICTED t(T) === # def extract_tT_pred(data, data_Chemin)
+# === PREDICTED t(T) === # def extract_tT_pred_vertical(data, sample_list):
 
-def extract_tT_pred(data):
-    max_point = 3
-    
-    #bloc 1
-    Chemin_loc = data[data[data.columns[0]].str.contains('Max Like')]
-    nb_point_like = data[Chemin_loc.index[0]+2 : Chemin_loc.index[0]+3].values
-    Chemin_val = data[Chemin_loc.index[0]+1 : Chemin_loc.index[0] + 3]
-    Chemin_val_like = Chemin_val.squeeze()
-    Chemin_val_like = Chemin_val_like.str.split(n=-1, expand=True)
-    Chemin_val_like.rename(columns={2:"Like",4:"Posterior"},inplace=True)
-    Chemin_point = data[Chemin_loc.index[0]+3 : Chemin_loc.index[0] + 3 + int(nb_point_like)]
-    Chemin_point_like = Chemin_point.squeeze()
-    Chemin_point_like = Chemin_point_like.str.split(n=-1, expand=True)
-    Chemin_point_like.rename(columns={0:"point",1:"Time",2:"Temp",3:"Z"},inplace=True)
-    max_point = max(int(nb_point_like),max_point)
-    
-    #bloc 2
-    Chemin_loc = data[data[data.columns[0]].str.contains('Max Post')]
-    nb_point_post = data[Chemin_loc.index[0]+2 : Chemin_loc.index[0]+3].values
-    Chemin_val = data[Chemin_loc.index[0]+1 : Chemin_loc.index[0] + 3]
-    Chemin_val_post = Chemin_val.squeeze()
-    Chemin_val_post = Chemin_val_post.str.split(n=-1, expand=True)
-    Chemin_val_post.rename(columns={2:"Like",4:"Posterior"},inplace=True)
-    Chemin_point = data[Chemin_loc.index[0]+3 : Chemin_loc.index[0] + 3 + int(nb_point_post)]
-    Chemin_point_post = Chemin_point.squeeze()
-    Chemin_point_post = Chemin_point_post.str.split(n=-1, expand=True)
-    Chemin_point_post.rename(columns={0:"point",1:"Time",2:"Temp",3:"Z"},inplace=True)
-    max_point = max(int(nb_point_post),max_point)
-    
-    #bloc 3
-    Chemin_loc = data[data[data.columns[0]].str.contains('EXPECTED')]
-    nb_point_expect = data[Chemin_loc.index[0]+3 : Chemin_loc.index[0]+4].values
-    nb_point_expect = nb_point_expect[0,0].split(' ')
-    Chemin_point = data[Chemin_loc.index[0]+4 : Chemin_loc.index[0] + 4 + int(nb_point_expect[0])]
-    Chemin_point_expect = Chemin_point.squeeze()
-    Chemin_point_expect = Chemin_point_expect.str.split(n=-1, expand=True)
-    Chemin_point_expect.rename(columns={0:"Time",1:"T_Expected",2:"T_Mode",3:"T_env_sup",4:"T_env_inf"},inplace=True)
-    max_point = max(int(nb_point_expect[0]),max_point)
-    
-    #recup dans un xarray
-    X = range(3) #time, temperature, info
-    Y = range(max_point)
-    Chemin = range(6)
-    #data_tT.clear()
-    data_Chemin = DataArray(
-        data=numpy.full((len(Chemin),len(Y),len(X)), numpy.nan, dtype=object),
-        coords={'X': X, 'Y': Y, 'Chemin': Chemin},
-        dims=('Chemin','Y', 'X')
+def extract_tT_pred_samples(data, sample_list):
+
+    col = data.columns[0]
+
+    # =========================
+    # FILTRAGE
+    # =========================
+    mask = data[col].str.contains(
+        'Max Like|Max Post|EXPECTED|Sample ID|MODE',
+        na=False
     )
-    
-    utils.get_chemin (0, data_Chemin, Chemin_point_like,Chemin_val_like, max_point, int(nb_point_like), 'Temp')
-    data_Chemin[0,0,2]='Max likelihood'
-    utils.get_chemin (1, data_Chemin, Chemin_point_post,Chemin_val_post, max_point, int(nb_point_post), 'Temp')
-    data_Chemin[1,0,2]='Max posterior'
-    utils.get_chemin (2, data_Chemin, Chemin_point_expect, "",max_point, int(nb_point_expect[0]), 'T_Expected')
-    data_Chemin[2,0,2]='Expected model'
-    utils.get_chemin (3, data_Chemin, Chemin_point_expect, "",max_point, int(nb_point_expect[0]), 'T_Mode')
-    data_Chemin[3,0,2]='Max mode model'
-    utils.get_chemin (4, data_Chemin, Chemin_point_expect, "",max_point, int(nb_point_expect[0]), 'T_env_sup')
-    data_Chemin[4,0,2]='Envelope sup. (99%)'
-    utils.get_chemin (5, data_Chemin, Chemin_point_expect, "",max_point, int(nb_point_expect[0]), 'T_env_inf')
-    data_Chemin[5,0,2]='Envelope inf. (99%)'
 
-    return data_Chemin
+    df = data.loc[mask].copy().reset_index(drop=False)
 
+    nb_ech = int(data.iloc[0, 0])
 
-
-# === PREDICTED t(T) for vertical profile === # def extract_tT_pred_vertical(data, sample_list):
-
-def extract_tT_pred_vertical(data, sample_list):
-    sample_path_loc = data[data[data.columns[0]].str.contains('Max Like|Max Post|EXPECTED|Sample ID|MODE')]
-    nb_ech = int(data.loc[0])
-    
-    #determine the maximim point :
+    # =========================
+    # DETECT MAX POINT
+    # =========================
     max_point = 0
     mem_type = ""
-    Mode = False
-    n = 0
-    for index, row in sample_path_loc.iterrows():
-        if 'Max Like' in row[0]:
-            mem_type = row[0] 
-        if 'Max Post' in row[0]:
-            mem_type = row[0]  
-        if 'EXPECTED' in row[0]:
-            mem_type = row[0]
-        if 'MODE' in row[0]:
-            if "END" in row[0]:
-                Mode = False
-            else:
-                Mode = True
-        if 'Sample ID' in row[0]:
-            if 'Sample ID =' not in row[0]:
+    mode = False
+
+    for _, row in df.iterrows():
+
+        text = str(row[col])
+        idx = row["index"]
+
+        if 'Max Like' in text:
+            mem_type = "Max Like"
+
+        elif 'Max Post' in text:
+            mem_type = "Max Post"
+
+        elif 'EXPECTED' in text:
+            mem_type = "EXPECTED"
+
+        elif 'MODE' in text:
+            mode = "END" not in text
+
+        elif 'Sample ID' in text:
+
+            if 'Sample ID =' not in text:
+
                 if mem_type != "EXPECTED":
-                    nb_constrain = int(data.iloc[index+1])
-                    nb_point = int(data.iloc[index + 2 + nb_constrain]) + 1
-                    if nb_point > max_point: max_point = nb_point
-            else: 
-                if Mode == False :
-                    data_tempo = data.iloc[index+1].str.split(n=-1, expand=True) 
-                    nb_point = int(data_tempo[0]) + 1
-                    if nb_point > max_point: max_point = nb_point
-    
-    # prepare the xarray for data storage ()
-    X = range(3) #time, temperature,info
+                    nb_constrain = int(data.iloc[idx + 1, 0])
+                    nb_point = int(data.iloc[idx + 2 + nb_constrain, 0]) + 1
+
+                    max_point = max(max_point, nb_point)
+
+            else:
+
+                if not mode:
+
+                    nb_point = int(str(data.iloc[idx + 1, 0]).split()[0])
+                    max_point = max(max_point, nb_point)
+
+    # =========================
+    # XARRAY INIT
+    # =========================
+    X = range(3)
     Y = range(max_point)
-    Chemin = range(nb_ech * 3) # 1 sample = 3 paths (Like, post, expected) 
+    Chemin = range(nb_ech * 6) # 6x for Max like, Max Post, Max Mode, Expected, env inf, env sup
+
     data_Chemin = DataArray(
-        data=numpy.full((len(Chemin),len(Y),len(X)), numpy.nan, dtype=object),
+        data=numpy.full((len(Chemin), len(Y), len(X)), numpy.nan, dtype=object),
         coords={'X': X, 'Y': Y, 'Chemin': Chemin},
-        dims=('Chemin','Y', 'X')
+        dims=('Chemin', 'Y', 'X')
     )
-    
-    #fill the xarray with the path
+
+    # =========================
+    # FILL LOGIC
+    # =========================
     mem_type = ""
-    Mode = False
+    mode = False
     n = 0
-    for index, row in sample_path_loc.iterrows():
-        if 'Max Like' in row[0]:
-            mem_type = row[0] 
-        if 'Max Post' in row[0]:
-            mem_type = row[0]  
-        if 'EXPECTED' in row[0]:
-            mem_type = row[0]
-        if 'MODE' in row[0]:
-            if "END" in row[0]:
-                Mode = False
-            else:
-                Mode = True
-        if 'Sample ID' in row[0]:
-            if 'Sample ID =' not in row[0]:
+
+    for _, row in df.iterrows():
+
+        text = str(row[col])
+        idx = row["index"]
+
+        if 'Max Like' in text:
+            mem_type = "Max Like"
+
+        elif 'Max Post' in text:
+            mem_type = "Max Post"
+
+        elif 'EXPECTED' in text:
+            mem_type = "EXPECTED"
+
+        elif 'MODE' in text:
+            mode = "END" not in text
+
+        elif 'Sample ID' in text:
+
+            # =========================
+            # CASE STANDARD (Like/Post)
+            # =========================
+            if 'Sample ID =' not in text:
+
                 if mem_type != "EXPECTED":
-                    #retriver
-                    data_tempo = row.str.split(n=-1, expand=True)
+
+                    data_tempo = text.split()
                     sample_ID = int(data_tempo[2])
-                    nb_constrain = int(data.iloc[index+1])
-                    nb_point = int(data.iloc[index + 2 + nb_constrain]) + 1
-                    index_init = index + 3
-                    #prepare
-                    Chemin_point = data.iloc[index_init:index_init + nb_point].squeeze()
-                    Chemin_point = Chemin_point.str.split(n=-1, expand=True)
-                    Chemin_point.rename(columns={0:"Time",1:"Temp",2:"Gradiant",3:"?"},inplace=True)
-                    
-                    #input in xarray
-                    data_Chemin[n,0,2] = sample_list[sample_ID]
-                    data_Chemin[n,1,2] = mem_type
-                    data_Chemin[n,0:nb_point,0] = Chemin_point.Time
-                    data_Chemin[n,nb_point:,0] = numpy.full(max_point - (nb_point) , numpy.nan) #needed for the plotting
-                    data_Chemin[n,0:nb_point,1] = Chemin_point.Temp
-                    data_Chemin[n,nb_point:,1] = numpy.full(max_point - (nb_point) , numpy.nan)#needed for the plotting
-                    n = n + 1
 
-            else: 
-                if Mode == False :
-                    #retriver
-                    data_tempo = row.str.split(n=-1, expand=True)
+                    nb_constrain = int(data.iloc[idx + 1, 0])
+                    nb_point = int(data.iloc[idx + 2 + nb_constrain, 0]) + 1
+
+                    start = idx + 3
+
+                    block = data.iloc[start:start + nb_point, 0]
+                    block = block.str.split(expand=True)
+                    if len(block.columns)> 2 :
+                        block.columns = ["Time", "Temp", "Gradient", "?"]
+                    else :
+                        block.columns = ["Time", "Temp"]
+                        
+                    sample = sample_list.get_sample_by_id(sample_ID)
+                        
+                    data_Chemin[n, 0, 2] = sample
+                    data_Chemin[n, 1, 2] = mem_type
+
+                    data_Chemin[n, :nb_point, 0] = block["Time"]
+                    data_Chemin[n, :nb_point, 1] = block["Temp"]
+
+                    data_Chemin[n, nb_point:, 0] = numpy.nan
+                    data_Chemin[n, nb_point:, 1] = numpy.nan
+
+                    n += 1
+
+            # =========================
+            # EXPECTED CASE
+            # =========================
+            else:
+
+                if not mode:
+
+                    data_tempo = text.split()
                     sample_ID = int(data_tempo[3])
-                    data_tempo = data.iloc[index+1].str.split(n=-1, expand=True) 
-                    nb_point = int(data_tempo[0]) + 1
-                    index_init = index + 2   
-                    
-                    #prepare
-                    Chemin_point = data.iloc[index_init:index_init + nb_point].squeeze()
-                    Chemin_point = Chemin_point.str.split(n=-1, expand=True)
-                    Chemin_point.rename(columns={0:"Time",1:"T_Expected",2:"T_Mode",3:"T_env_sup",4:"T_env_inf",9: "Gradiant"},inplace=True)
 
-                    #input in xarray
-                    data_Chemin[n,1,2] = sample_list[sample_ID]
-                    data_Chemin[n,1,2] = mem_type
-                    data_Chemin[n,0:nb_point,0] = Chemin_point.Time
-                    data_Chemin[n,nb_point:,0] = numpy.full(max_point - (nb_point) , numpy.nan)#needed for the plotting
-                    data_Chemin[n,0:nb_point,1] = Chemin_point.T_Expected
-                    data_Chemin[n,nb_point:,1] = numpy.full(max_point - (nb_point) , numpy.nan)#needed for the plotting
-                    n = n + 1
+                    nb_point = int(str(data.iloc[idx + 1, 0]).split()[0])
+                    start = idx + 2
+
+                    block = data.iloc[start:start + nb_point, 0]
+                    block = block.str.split(expand=True)
                     
+                    # garder uniquement les colonnes utiles
+                    block = block.iloc[:, :5].copy()
+                    block.columns = [
+                        "Time", "T_Expected", "T_Mode",
+                        "T_env_sup", "T_env_inf"
+                    ]
+                    
+                    sample = sample_list.get_sample_by_id(sample_ID)
+                    block['Time'] = to_numeric(block['Time'])
+                    sample.max_time_ = block['Time'].max()
+
+                    data_Chemin[n, 0, 2] = sample
+                    data_Chemin[n, 1, 2] = "EXPECTED"
+                    data_Chemin[n, :nb_point, 0] = block["Time"]
+                    data_Chemin[n, :nb_point, 1] = block["T_Expected"]
+                    data_Chemin[n, nb_point:, 0] = numpy.nan
+                    data_Chemin[n, nb_point:, 1] = numpy.nan
+                    
+                    n += 1
+                    
+                    data_Chemin[n, 0, 2] = sample
+                    data_Chemin[n, 1, 2] = "Max Mode"
+                    data_Chemin[n, :nb_point, 0] = block["Time"]
+                    data_Chemin[n, :nb_point, 1] = block["T_Mode"]
+                    data_Chemin[n, nb_point:, 0] = numpy.nan
+                    data_Chemin[n, nb_point:, 1] = numpy.nan
+                    
+                    n += 1
+                    
+                    data_Chemin[n, 0, 2] = sample
+                    data_Chemin[n, 1, 2] = "Envelope sup."
+                    data_Chemin[n, :nb_point, 0] = block["Time"]
+                    data_Chemin[n, :nb_point, 1] = block["T_env_sup"]
+                    data_Chemin[n, nb_point:, 0] = numpy.nan
+                    data_Chemin[n, nb_point:, 1] = numpy.nan
+                    
+                    n += 1
+                    
+                    data_Chemin[n, 0, 2] = sample
+                    data_Chemin[n, 1, 2] = "Envelope inf."
+                    data_Chemin[n, :nb_point, 0] = block["Time"]
+                    data_Chemin[n, :nb_point, 1] = block["T_env_inf"]
+                    data_Chemin[n, nb_point:, 0] = numpy.nan
+                    data_Chemin[n, nb_point:, 1] = numpy.nan
+                    
+                    n += 1
+
     return data_Chemin
 
-
-
 # === He AGES === # def extract_He_Ages(data, data_He_Maxlike, data_He_MaxPost, data_He_Expect):
-         
+
 def extract_He_Ages(data):
-    # AGE : extraire du fichier Summary.txt les chemins
-    He_Age_loc = data[data[data.columns[0]].str.contains('Max Like|Max Post|EXPECTED|File Name|He =|HeR')]
-    nb_ech = int(data.loc[0])
 
-    # nettoyage des echan sans helium
-    nb_He = 0
-    mem = ""
-    mem_ech = 0
+    col = data.columns[0]
+
+    # --- Filtrage ---
+    mask = data[col].str.contains(
+        'Max Like|Max Post|EXPECTED|File Name|He =|HeR',
+        na=False
+    )
+
+    df = data.loc[mask].copy().reset_index(drop=False)
+
+    nb_ech = int(data.iloc[0, 0])
+
+    results = []
+
+    # mémoire
     mem_type = ""
-    Expected = False
     mem_expected = 1
+    Expected = False
     nom_ech = ""
-    for index, row in He_Age_loc.iterrows():
-        if 'HeR =' in row[0]:
-            He_Age_loc.loc[index,:] = row.str.replace("HeR =",'He_' + nom_ech)
-            He_Age_loc.loc[index,:] = He_Age_loc.loc[index,:].str.replace("Pred Age", str(mem_type + " " + str(mem_expected)))
+    nb_He = 0
 
-        if 'Max Like' in row[0]:
-            mem_type = row[0] 
-            He_Age_loc = He_Age_loc.drop(labels=[index], axis = 0)
-        if 'Max Post' in row[0]:
-            mem_type = row[0]  
-            He_Age_loc = He_Age_loc.drop(labels=[index], axis = 0)
-        if 'EXPECTED' in row[0]:
-            mem_type = row[0]
-            He_Age_loc = He_Age_loc.drop(labels=[index], axis = 0)
+    last_valid_idx = None  # remplace "mem"
+
+    # =========================
+    # PARSING
+    # =========================
+    for _, row in df.iterrows():
+
+        text = str(row[col])
+        idx = row["index"]
+
+        # --- TYPE ---
+        if 'Max Like' in text:
+            mem_type = text
+            continue
+
+        elif 'Max Post' in text:
+            mem_type = text
+            continue
+
+        elif 'EXPECTED' in text:
+            mem_type = text
             Expected = True
             mem_expected = 0
+            continue
 
-        if 'File Name =' in row[0]:
-            if Expected == True:
-                mem_expected = mem_expected + 1
+        # --- FILE NAME ---
+        elif 'File Name =' in text:
+
+            if Expected:
+                mem_expected += 1
                 if mem_expected > 2:
                     mem_expected = 1
-            #row = row.str.replace(".txt","")
-            row = row.str.replace(" ","_")
-            test_1 = row.str.split(pat='/',n=-1, expand=True)
-            nom_ech = str(test_1[test_1.shape[1]-1].values)
-            nom_ech = nom_ech.replace("(",'').replace(")",'').replace("[","").replace("]","").replace("'","").replace(".txt","")
-            He_Age_loc.loc[index,:] = nom_ech + " t " + mem_type + " " + str(mem_expected)
-            mem_ech = mem_ech + 1
-            if mem_ech > nb_ech:
-                mem_ech = 1
+
+            parts = text.split('/')
+            nom_ech = parts[-1]
+            
+            #clean file name to avoid bug after during filter:
+            nom_ech = utils.clean_name(nom_ech)
+
+            results.append(f"{nom_ech} t {mem_type} {mem_expected}")
+            continue
+
+        # --- HeR ---
+        elif 'HeR =' in text:
+
+            new_text = text.replace("HeR =", f"He_{nom_ech}")
+            new_text = new_text.replace("Pred Age", f"{mem_type} {mem_expected}")
+
+            results.append(new_text)
+            continue
+
+        # --- He ---
+        elif 'NFT =' in text:
+            continue
+
+        elif 'He =' in text:
+
+            parts = text.split()
+
+            try:
+                val = int(parts[2])
                 
-        if 'NFT =' in row[0]:
-            He_Age_loc = He_Age_loc.drop(labels=[index], axis = 0)
-        elif 'He =' in row[0]:
-            test = row.str.split(n=-1, expand=True)
-            if int(test[2]) == 0:
-                He_Age_loc = He_Age_loc.drop(labels=[mem, index], axis = 0)
+            except:
+                continue
+
+            if val == 0:
+                # supprimer la ligne précédente (équivalent mem)
+                if last_valid_idx is not None and len(results) > 0:
+                    results.pop()
+                continue
             else:
-                nb_He = max(nb_He,int(test[2]))
-                He_Age_loc = He_Age_loc.drop(labels=[index], axis = 0)
+                nb_He = max(nb_He, val)
+                continue
 
-        else:    
-            mem = index
-    
-    if not He_Age_loc.empty:
-        He_Age_loc = He_Age_loc.squeeze()
-        He_Age_loc = He_Age_loc.str.replace("Max ","Max-")
-        He_Age = He_Age_loc.str.split(n=-1, expand=True)
-        He_Age.rename(columns={0:"Nom",1:"Rs",2:"type",3:"type_bis",5:"Pred_ages",9:"Obs_age",12:"Error",18:"Tc", 19:"Crystal",22:"eU",25:"Ft",28:"Cor_Pred_age"},inplace=True)
-        nb_ech = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('Max-Like')].Nom.shape[0]
         
-        #recup des He
-        X = range(10) #Rs, Pred Ages, ±, Obs Ages, ±, Tc, crystal, eU, Pred Ages (Corr), echantillon + info
-        if nb_He == 1:
-            Y = range(nb_He + 1)
-        else:        
-            Y = range(nb_He)
-        echantillon = range(nb_ech)
 
-        #maxlike
-        data_He_Maxlike = DataArray(
-            data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
-            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-            dims=('echantillon','Y', 'X')
-        )
-        #maxpost
-        data_He_MaxPost = DataArray(
-            data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
-            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-            dims=('echantillon','Y', 'X')
-        )
-        #expect
-        data_He_Expect = DataArray(
-            data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
-            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-            dims=('echantillon','Y', 'X')
-        )
+        # --- fallback ---
+        last_valid_idx = idx
 
-        data_He_Maxlike[:,0,8] = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('Max-Like')].Nom
-        data_He_Maxlike[:,1,8] = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('Max-Like')].type
-        data_He_MaxPost[:,0,8] = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('Max-Post')].Nom
-        data_He_MaxPost[:,1,8] = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('Max-Post')].type
-        data_He_Expect[:,0,8] = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('EXPECTED') & He_Age.type_bis.str.contains('1')].Nom
-        data_He_Expect[:,1,8] = He_Age[He_Age.Rs.str.contains('t') & He_Age.type.str.contains('EXPECTED') & He_Age.type_bis.str.contains('1')].type
-
-        for n in echantillon:
-            ech = data_He_Maxlike[n,0,8].values
-            utils.get_He(n, ech ,nb_He, data_He_Maxlike, He_Age, 'Max-Like')
-            utils.get_He(n, ech ,nb_He, data_He_MaxPost, He_Age, 'Max-Post')
-            utils.get_He(n, ech ,nb_He, data_He_Expect, He_Age, 'EXPECTED')
-
-        for n in echantillon: #calculate pred error
-            data_He_Maxlike[n,:,1] = data_He_Maxlike[n,:,3].astype(dtype=float) / data_He_Maxlike[n,:,2].astype(dtype=float) * data_He_Maxlike[n,:,0].astype(dtype=float)
-            data_He_MaxPost[n,:,1] = data_He_MaxPost[n,:,3].astype(dtype=float) / data_He_MaxPost[n,:,2].astype(dtype=float) * data_He_MaxPost[n,:,0].astype(dtype=float)
-            data_He_Expect[n,:,1] = data_He_Expect[n,:,3].astype(dtype=float) / data_He_Expect[n,:,2].astype(dtype=float) * data_He_Expect[n,:,0].astype(dtype=float)
-        
-        return data_He_Maxlike, data_He_MaxPost, data_He_Expect
-    
-    else:
-        
+    # =========================
+    # CONSTRUCTION DF
+    # =========================
+    if nb_He == 0:
         return '', '', ''
 
+    He_Age = (
+        Series(results)
+        .str.replace("Max ", "Max-")
+        .str.split(expand=True)
+    )
+    
+    He_Age.rename(columns={
+        0: "Nom",
+        1: "Rs",
+        2: "type",
+        3: "type_bis",
+        5: "Pred_ages",
+        9: "Obs_age",
+        12: "Error",
+        18: "Tc",
+        19: "Crystal",
+        22: "eU",
+        25: "Ft",
+        28: "Cor_Pred_age"
+    }, inplace=True)    
+    
+    # =========================
+    # DIMENSIONS
+    # =========================
+    nb_ech = He_Age[
+        He_Age.Rs.str.contains('t', na=False) &
+        He_Age.type.str.contains('Max-Like', na=False)
+    ].shape[0]
+    
+    X = range(10)    
+    
+    if nb_He == 1:
+        Y = range(nb_He + 1)
+    else:
+        Y = range(nb_He)
 
+    echantillon = range(nb_ech)
+
+    def init_array():
+        return DataArray(
+            data=numpy.full((len(echantillon), len(Y), len(X)), numpy.nan, dtype=object),
+            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
+            dims=('echantillon', 'Y', 'X')
+        )
+
+    data_He_Maxlike = init_array()
+    data_He_MaxPost = init_array()
+    data_He_Expect = init_array()
+
+    # =========================
+    # INITIALISATION NOMS
+    # =========================
+    like = He_Age[
+        He_Age.Rs.str.contains('t', na=False) &
+        He_Age.type.str.contains('Max-Like', na=False)
+    ]
+
+    post = He_Age[
+        He_Age.Rs.str.contains('t', na=False) &
+        He_Age.type.str.contains('Max-Post', na=False)
+    ]
+
+    expect = He_Age[
+        He_Age.Rs.str.contains('t', na=False) &
+        He_Age.type.str.contains('EXPECTED', na=False) &
+        He_Age.type_bis.astype(str).str.contains('1', na=False)
+    ]
+
+    data_He_Maxlike[:, 0, 8] = like.Nom.values
+    data_He_Maxlike[:, 1, 8] = like.type.values
+
+    data_He_MaxPost[:, 0, 8] = post.Nom.values
+    data_He_MaxPost[:, 1, 8] = post.type.values
+
+    data_He_Expect[:, 0, 8] = expect.Nom.values
+    data_He_Expect[:, 1, 8] = expect.type.values
+
+    # =========================
+    # REMPLISSAGE VIA UTIL
+    # =========================
+    for n in echantillon:
+
+        ech = data_He_Maxlike[n, 0, 8].values
+
+        utils.get_He(n, ech, nb_He, data_He_Maxlike, He_Age, 'Max-Like')
+        utils.get_He(n, ech, nb_He, data_He_MaxPost, He_Age, 'Max-Post')
+        utils.get_He(n, ech, nb_He, data_He_Expect, He_Age, 'EXPECTED')
+
+    # =========================
+    # CALCUL ERREURS
+    # =========================
+    for n in echantillon:
+
+        data_He_Maxlike[n,:,1] = (
+            data_He_Maxlike[n,:,3].astype(float) /
+            data_He_Maxlike[n,:,2].astype(float) *
+            data_He_Maxlike[n,:,0].astype(float)
+        )
+
+        data_He_MaxPost[n,:,1] = (
+            data_He_MaxPost[n,:,3].astype(float) /
+            data_He_MaxPost[n,:,2].astype(float) *
+            data_He_MaxPost[n,:,0].astype(float)
+        )
+
+        data_He_Expect[n,:,1] = (
+            data_He_Expect[n,:,3].astype(float) /
+            data_He_Expect[n,:,2].astype(float) *
+            data_He_Expect[n,:,0].astype(float)
+        )
+
+    return data_He_Maxlike, data_He_MaxPost, data_He_Expect
 
 # === FT AGES === # def extract_He_Ages(data, data_He_Maxlike, data_He_MaxPost, data_He_Expect)
 
 def extract_FT_Ages(data):
-    
-    FT_Age_loc = data[data[data.columns[0]].str.contains('Max Like|Max Post|EXPECTED|File Name|Pred FT age')]
-    nb_ech = int(data.loc[0])
-    # nettoyage des echan sans AFT
+
+    col = data.columns[0]
+
+    # =========================
+    # FILTRAGE + INDEX SAFE
+    # =========================
+    mask = data[col].str.contains(
+        'Max Like|Max Post|EXPECTED|File Name|Pred FT age',
+        na=False
+    )
+
+    df = data.loc[mask].copy().reset_index(drop=False)
+
+    # =========================
+    # PARSING (STATE MACHINE)
+    # =========================
     mem_type = ""
     mem_nom = ""
     mem_expected = 0
-    Expected = False
-    for index, row in FT_Age_loc.iterrows():
+    expected_flag = False
 
-        if 'Max Like' in row[0]:
-            mem_type = row.str.replace(" ","_")
-            FT_Age_loc = FT_Age_loc.drop(labels=[index], axis = 0)
-        elif 'Max Post' in row[0]:
-            mem_type = row.str.replace(" ","_")
-            FT_Age_loc = FT_Age_loc.drop(labels=[index], axis = 0)
-        elif 'EXPECTED' in row[0]:
-            mem_type = row.str.replace(" ","_")
-            FT_Age_loc = FT_Age_loc.drop(labels=[index], axis = 0)
-            Expected = True   
+    rows_out = []
 
-        elif 'File Name =' in row[0]:
-            if Expected == True:
-                mem_expected = mem_expected + 1
+    for _, row in df.iterrows():
+
+        text = str(row[col])
+        idx = row["index"]
+
+        # -------- TYPE --------
+        if 'Max Like' in text:
+            mem_type = "Max_Like"
+            continue
+
+        elif 'Max Post' in text:
+            mem_type = "Max_Post"
+            continue
+
+        elif 'EXPECTED' in text:
+            mem_type = "EXPECTED"
+            expected_flag = True
+            continue
+
+        # -------- FILE NAME --------
+        elif 'File Name =' in text:
+
+            if expected_flag:
+                mem_expected += 1
                 if mem_expected > 2:
                     mem_expected = 1
-            
-            #row = row.str.replace(".txt","")
-            row = row.str.replace(" ","_")
-            test = row.str.split(pat='/',n=-1, expand=True)
-            mem_nom = str(test[test.shape[1]-1].values).replace("(",'').replace(")",'').replace("[","").replace("]","").replace("'","").replace(".txt","")
-            FT_Age_loc = FT_Age_loc.drop(labels=[index], axis = 0)
 
-        elif 'Pred FT age =' in row[0]:
-            test = row.str.split(n=-1, expand=True)
-            if float(test[5]) == -1:
-                FT_Age_loc = FT_Age_loc.drop(labels=[index], axis = 0)
-            else:
-                tempo = data.loc[index+4]
-                tempo_2 = FT_Age_loc.loc[index].str.replace("Pred FT", mem_nom + " " + str(mem_type.values) + " " + str(mem_expected))
-                FT_Age_loc.loc[index] = tempo_2 + " " + tempo
+            name = text.split('/')[-1]
+            name = utils.clean_name(name)
+            mem_nom = name
 
-    if not FT_Age_loc.empty:
-        FT_Age_tab = FT_Age_loc.squeeze()
-        FT_Age_tab = FT_Age_tab.str.split(n=-1, expand=True)
-        FT_Age_tab.rename(columns={0:"nom",1:"type",2:"expect",5:"Pred_ages",6:"Obs_ages",20:"Obs_ages_error",39:"Pred_kin", 40:"Obs_kin",41:"Obs_kin_error"},inplace=True)
-        
-        nb_FT = FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].nom.shape[0]
+            continue
 
-        #recup dans un xarray
-        X = range(10) #Pred_ages, dpred, Obs_ages, dobs, nom, type, pre_kin, dpred, obs_kin, d_obs
-        Y = range(1)
-        echantillon = range(int(nb_FT))
+        # -------- MAIN DATA --------
+        elif 'Pred FT age =' in text:
 
-        #1
-        data_FT_like = DataArray(
-            data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
-            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-            dims=('echantillon', 'Y', 'X')
-        )
-        #2
-        data_FT_post = DataArray(
-            data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
-            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-            dims=('echantillon', 'Y', 'X')
-        )
-        #3
-        data_FT_expect = DataArray(
-            data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
-            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-            dims=('echantillon', 'Y', 'X')
-        )
+            parts = text.split()
 
-        data_FT_like[:,0,0]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].Pred_ages
-        data_FT_like[:,0,1]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].Obs_ages
-        data_FT_like[:,0,2]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].Obs_ages_error
-        data_FT_like[:,0,4]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].nom
-        data_FT_like[:,0,5]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].type
-        data_FT_like[:,0,6]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].Pred_kin
-        data_FT_like[:,0,8]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].Obs_kin
-        data_FT_like[:,0,9]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].Obs_kin_error
-        
-        data_FT_post[:,0,0]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].Pred_ages
-        data_FT_post[:,0,1]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].Obs_ages
-        data_FT_post[:,0,2]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].Obs_ages_error
-        data_FT_post[:,0,4]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].nom
-        data_FT_post[:,0,5]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].type
-        data_FT_post[:,0,6]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].Pred_kin
-        data_FT_post[:,0,8]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].Obs_kin
-        data_FT_post[:,0,9]=FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')].Obs_kin_error
+            # sécurité parsing
+            try:
+                if float(parts[5]) == -1:
+                    continue
+            except:
+                continue
 
-        data_FT_expect[:,0,0]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].Pred_ages
-        data_FT_expect[:,0,1]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].Obs_ages
-        data_FT_expect[:,0,2]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].Obs_ages_error
-        data_FT_expect[:,0,4]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].nom
-        data_FT_expect[:,0,5]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].type
-        data_FT_expect[:,0,6]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].Pred_kin
-        data_FT_expect[:,0,8]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].Obs_kin
-        data_FT_expect[:,0,9]=FT_Age_tab[FT_Age_tab.type.str.contains('EXPECTED') & FT_Age_tab.expect.str.contains('1')].Obs_kin_error
+            # ⚠️ récupération robuste
+            tempo = str(data.iloc[idx + 4, 0])
 
-        data_FT_like[:,0,3] = data_FT_like[:,0,2].astype(dtype=float) / data_FT_like[:,0,1].astype(dtype=float) * data_FT_like[:,0,0].astype(dtype=float)
-        data_FT_post[:,0,3] = data_FT_post[:,0,2].astype(dtype=float) / data_FT_post[:,0,1].astype(dtype=float) * data_FT_post[:,0,0].astype(dtype=float)
-        data_FT_expect[:,0,3] = data_FT_expect[:,0,2].astype(dtype=float) / data_FT_expect[:,0,1].astype(dtype=float) * data_FT_expect[:,0,0].astype(dtype=float)
-        
-        data_FT_like[:,0,7] = data_FT_like[:,0,9].astype(dtype=float) / data_FT_like[:,0,8].astype(dtype=float) * data_FT_like[:,0,6].astype(dtype=float)
-        data_FT_post[:,0,7] = data_FT_post[:,0,9].astype(dtype=float) / data_FT_post[:,0,8].astype(dtype=float) * data_FT_post[:,0,6].astype(dtype=float)
-        data_FT_expect[:,0,7] = data_FT_expect[:,0,9].astype(dtype=float) / data_FT_expect[:,0,8].astype(dtype=float) * data_FT_expect[:,0,6].astype(dtype=float)
-        
-        return data_FT_like, data_FT_post, data_FT_expect
-        
-    else:
+            new_line = text.replace(
+                "Pred FT",
+                f"{mem_nom} {mem_type} {mem_expected}"
+            )
+
+            full_line = f"{new_line} {tempo}"
+
+            rows_out.append(full_line)
+
+    # =========================
+    # PAS DE DATA
+    # =========================
+    if not rows_out:
         return '', '', ''
 
+    # =========================
+    # TABLE
+    # =========================
+    FT_Age_tab = (
+        Series(rows_out)
+        .str.split(expand=True)
+    )
+
+    FT_Age_tab = FT_Age_tab.rename(columns={
+        0: "nom",
+        1: "type",
+        2: "expect",
+        5: "Pred_ages",
+        6: "Obs_ages",
+        20: "Obs_ages_error",
+        39: "Pred_kin",
+        40: "Obs_kin",
+        41: "Obs_kin_error"
+    })
+    
+    FT_Age_tab["Obs_ages_error"] = FT_Age_tab["Obs_ages_error"].replace("-1.#IND00", "0")
+
+    
+    # =========================
+    # NB
+    # =========================
+    nb_FT = FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')].shape[0]
+
+    # =========================
+    # XARRAY INIT (INCHANGÉ)
+    # =========================
+    X = range(10)
+    Y = range(1)
+    echantillon = range(nb_FT)
+
+    def make_array():
+        return DataArray(
+            data=numpy.full((len(echantillon), len(Y), len(X)), numpy.nan, dtype=object),
+            coords={'X': X, 'Y': Y, 'echantillon': echantillon},
+            dims=('echantillon', 'Y', 'X')
+        )
+
+    data_FT_like = make_array()
+    data_FT_post = make_array()
+    data_FT_expect = make_array()
+
+    # =========================
+    # FILL FUNCTION
+    # =========================
+    def fill(arr, df):
+        arr[:, 0, 0] = df.Pred_ages
+        arr[:, 0, 1] = df.Obs_ages
+        arr[:, 0, 2] = df.Obs_ages_error
+        arr[:, 0, 4] = df.nom
+        arr[:, 0, 5] = df.type
+        arr[:, 0, 6] = df.Pred_kin
+        arr[:, 0, 8] = df.Obs_kin
+        arr[:, 0, 9] = df.Obs_kin_error
+
+    # =========================
+    # SPLIT DATA
+    # =========================
+    df_like = FT_Age_tab[FT_Age_tab.type.str.contains('Max_Like')]
+    df_post = FT_Age_tab[FT_Age_tab.type.str.contains('Max_Post')]
+    df_expect = FT_Age_tab[
+        (FT_Age_tab.type.str.contains('EXPECTED')) &
+        (FT_Age_tab.expect.str.contains('1'))
+    ]
+
+    fill(data_FT_like, df_like)
+    fill(data_FT_post, df_post)
+    fill(data_FT_expect, df_expect)
+
+    # =========================
+    # CALCULS (inchangés)
+    # =========================
+    def compute(arr):
+        arr[:, 0, 3] = (
+            arr[:, 0, 2].astype(float) /
+            arr[:, 0, 1].astype(float) *
+            arr[:, 0, 0].astype(float)
+        )
+        arr[:, 0, 7] = (
+            arr[:, 0, 9].astype(float) /
+            arr[:, 0, 8].astype(float) *
+            arr[:, 0, 6].astype(float)
+        )
+
+    compute(data_FT_like)
+    compute(data_FT_post)
+    compute(data_FT_expect)
+
+    return data_FT_like, data_FT_post, data_FT_expect
 
 
 # === FT LENGTH === # def extract_He_Ages(data, data_He_Maxlike, data_He_MaxPost, data_He_Expect)
 
 def extract_FT_Length(data):
-    
-    #handle modification from old QTQt version to find the position of LFT data (location was missing)
-    FT_Length_loc = data[data[data.columns[0]].str.contains('Lc0')]
-    if FT_Length_loc.empty:
-        LFT_marker = '1 0.100000 0.000000 0.000000 0.000000'
-        LFT_shift = 1
-    else:
+
+    col = data.columns[0]
+
+    # --- Détection du format ---
+    has_lc0 = data[col].str.contains('Lc0', na=False).any()
+
+    if has_lc0:
         LFT_marker = 'Lc0 '
         LFT_shift = 0
-    
-    FT_Length_loc = data[data[data.columns[0]].str.contains('Max Like|Max Post|EXPECTED|File Name|' + LFT_marker)]
+    else:
+        LFT_marker = '1 0.100000 0.000000 0.000000 0.000000'
+        LFT_shift = 1
+
+    # --- Filtrage utile ---
+    mask = data[col].str.contains(
+        f'Max Like|Max Post|EXPECTED|File Name|{LFT_marker}',
+        na=False
+    )
+
+    df = data.loc[mask].copy().reset_index(drop=False)
+
+    results = []
+
+    # mémoire
     mem_type = ""
     mem_nom = ""
     mem_expected = 0
     Expected = False
-    for index, row in FT_Length_loc.iterrows():
 
-        if 'Max Like' in row[0]:
-            mem_type = row.str.replace(" ","_")
-            FT_Length_loc = FT_Length_loc.drop(labels=[index], axis = 0)
-        elif 'Max Post' in row[0]:
-            mem_type = row.str.replace(" ","_")
-            FT_Length_loc = FT_Length_loc.drop(labels=[index], axis = 0)
-        elif 'EXPECTED' in row[0]:
-            mem_type = row.str.replace(" ","_")
-            FT_Length_loc = FT_Length_loc.drop(labels=[index], axis = 0)
-            Expected = True   
+    # --- Parsing propre ---
+    for _, row in df.iterrows():
 
-        elif 'File Name =' in row[0]:
-            if Expected == True:
-                mem_expected = mem_expected + 1
+        text = str(row[col])
+        original_idx = row["index"]
+
+        if 'Max Like' in text:
+            mem_type = text.replace(" ", "_")
+            continue
+
+        elif 'Max Post' in text:
+            mem_type = text.replace(" ", "_")
+            continue
+
+        elif 'EXPECTED' in text:
+            mem_type = text.replace(" ", "_")
+            Expected = True
+            continue
+
+        elif 'File Name =' in text:
+
+            if Expected:
+                mem_expected += 1
                 if mem_expected > 2:
                     mem_expected = 1
 
-            #row = row.str.replace(".txt","")
-            row = row.str.replace(" ","_")
-            test = row.str.split(pat='/',n=-1, expand=True)
-            mem_nom = test[test.shape[1]-1].values
-            FT_Length_loc = FT_Length_loc.drop(labels=[index], axis = 0)
+            nom = text.split('/')[-1]         
+            nom = utils.clean_name(nom)
+            mem_nom = nom
 
-        elif LFT_marker in row[0]:
-            FT_Length_loc.loc[index] = str(mem_nom[0]) + " " + mem_type.values + " " + str(mem_expected)
+            continue
 
-    FT_Length_tab = FT_Length_loc.squeeze()
-    FT_Length_tab = FT_Length_tab.str.split(n=-1, expand=True)
-    FT_Length_tab.rename(columns={0:"nom",1:"type",2:"expect"},inplace=True)
-    nb_ech = FT_Length_tab[FT_Length_tab.type.str.contains('Max_Like')].nom.shape[0]
-    
-    #recup des FT
-    X = range(6) #lenght, nb_obs, nb_pred_maxlike, nb_pred_maxpost, nb_pred_maxexpected, info
+        elif LFT_marker in text:
+
+            results.append({
+                "nom": mem_nom,
+                "type": mem_type,
+                "expect": mem_expected,
+                "idx": original_idx
+            })
+
+    if not results:
+        return None
+
+    FT_Length_tab = DataFrame(results)
+
+    # --- Dimensions ---
+    nb_ech = FT_Length_tab[FT_Length_tab.type.str.contains('Max_Like', na=False)].shape[0]
+
+    X = range(6)
     Y = range(200)
     echantillon = range(nb_ech)
 
     data_FT_Lenght = DataArray(
-        data=numpy.full((len(echantillon),len(Y),len(X)), numpy.nan, dtype=object),
+        data=numpy.full((len(echantillon), len(Y), len(X)), numpy.nan, dtype=object),
         coords={'X': X, 'Y': Y, 'echantillon': echantillon},
-        dims=('echantillon','Y', 'X')
+        dims=('echantillon', 'Y', 'X')
     )
 
-    for n in range(data_FT_Lenght.shape[0]):
-        data_FT_Lenght[n,:,0]=numpy.arange(0,20, step=0.1)
+    # --- Axe longueur ---
+    for n in range(len(echantillon)):
+        data_FT_Lenght[n, :, 0] = numpy.arange(0, 20, step=0.1)
 
-    n=0
-    
-    
-    #retriver observerd LFT and name #(n correspond to the sample number)
-    for index, row in  FT_Length_tab[FT_Length_tab.type.str.contains('Max_Like')].iterrows():
-        a = index
-        
-        obs_LFT = data[a - 20 : a - 2] #don't take the 20 as it is not present in the main matrix (0 to 19.9)
-        obs_LFT = obs_LFT.squeeze()
-        obs_LFT = obs_LFT.str.split(n=-1, expand=True)
-        obs_LFT.rename(columns={0:"lenght",1:"curve",2:"bar"},inplace=True)
-        
-        #upscaling the table from 10 to 100 rows to fit all data in the same matrix (pred at 200 rows)  
-        all_row = numpy.empty((20,10,))
-        all_row[:,:] = numpy.nan
-        all_row[1:19,0] = obs_LFT.bar #put the row 1 to 19 because the 0 is not there
-        data_FT_Lenght[n,:,1] = all_row.ravel()
-        data_FT_Lenght[n,0,5] = FT_Length_tab.loc[a].nom
-        n=n+1
-    
-    n=0
-    for index, row in  FT_Length_tab[FT_Length_tab.type.str.contains('Max_Like')].iterrows():
-        a = index
-        pred_LFT = data[a + 1 - LFT_shift  : a + 1 + 200 - LFT_shift]
-        pred_LFT = pred_LFT.squeeze()
-        pred_LFT = pred_LFT.str.split(n=-1, expand=True)
-        pred_LFT.rename(columns={0:"number", 1:"lenght", 2:"curve"},inplace=True)
-        data_FT_Lenght[n,:,2]=pred_LFT.curve
-        n=n+1
+    # =========================
+    # OBSERVED (Max Like)
+    # =========================
+    subset = FT_Length_tab[FT_Length_tab.type.str.contains('Max_Like', na=False)].reset_index(drop=True)
 
-    n=0
-    for index, row in  FT_Length_tab[FT_Length_tab.type.str.contains('Max_Post')].iterrows():
-        a = index
-        pred_LFT = data[a + 1 - LFT_shift  : a + 1 + 200 - LFT_shift]
-        pred_LFT = pred_LFT.squeeze()
-        pred_LFT = pred_LFT.str.split(n=-1, expand=True)
-        pred_LFT.rename(columns={0:"number", 1:"lenght", 2:"curve"},inplace=True)
-        data_FT_Lenght[n,:,3]=pred_LFT.curve
-        n=n+1
+    for n, row in subset.iterrows():
 
-    n=0
-    for index, row in FT_Length_tab[FT_Length_tab.expect.str.contains('1')].iterrows():   
-        a = index
-        pred_LFT = data[a + 1 - LFT_shift  : a + 1 + 200 - LFT_shift]
-        pred_LFT = pred_LFT.squeeze()
-        pred_LFT = pred_LFT.str.split(n=-1, expand=True)
-        pred_LFT.rename(columns={0:"number", 1:"lenght", 2:"curve"},inplace=True)
-        data_FT_Lenght[n,:,4]=pred_LFT.curve
-        n=n+1
-    
+        a = row["idx"]
+
+        obs = data.iloc[a - 20 : a - 2, 0]
+        obs = obs.str.split(expand=True)
+        obs.columns = ["lenght", "curve", "bar"]
+
+        arr = numpy.full((20, 10), numpy.nan)
+        arr[1:19, 0] = obs["bar"].astype(float)
+
+        data_FT_Lenght[n, :, 1] = arr.ravel()
+        data_FT_Lenght[n, 0, 5] = row["nom"]
+
+    # =========================
+    # PREDICTIONS
+    # =========================
+    def fill_pred(column_idx, subset):
+
+        subset = subset.reset_index(drop=True)
+
+        for n, row in subset.iterrows():
+
+            a = row["idx"]
+
+            pred = data.iloc[a + 1 - LFT_shift : a + 201 - LFT_shift, 0]
+            pred = pred.str.split(expand=True)
+
+            # garder uniquement les colonnes utiles
+            pred = pred.iloc[:, :3].copy()
+            pred.columns = ["number", "lenght", "curve"]
+
+            data_FT_Lenght[n, :, column_idx] = pred["curve"].astype(float)
+
+    fill_pred(2, FT_Length_tab[FT_Length_tab.type.str.contains('Max_Like', na=False)])
+    fill_pred(3, FT_Length_tab[FT_Length_tab.type.str.contains('Max_Post', na=False)])
+    fill_pred(4, FT_Length_tab[FT_Length_tab.expect.astype(str).str.contains('1', na=False)])
+
     return data_FT_Lenght
-
 
 
 # === RESAMPLES PARAMETERS === # def extract_resample(data)
 
 def extract_resample(data):
 
-    nb_sample = int(data.iloc[0])
-    nb_iteration= int(data.iloc[1 + nb_sample])
+    nb_sample = int(data.iloc[0,0])
+    nb_iteration= int(data.iloc[1 + nb_sample, 0])
 
     # retriver sample information ("header" of the file)
     tab_info = data.iloc[1:1 + nb_sample]
@@ -938,7 +1242,7 @@ def extract_resample(data):
 
     # retriver sampling data
     tab_data = data.iloc[1 + nb_sample + 1 : 1 + nb_sample + 1  + (nb_iteration*nb_sample)]
-    step_iteration = int(tab_data.iloc[0].str.split(' ', n=-1, expand=True)[0])
+    #step_iteration = int(tab_data.iloc[0].str.split(' ', n=-1, expand=True)[0])
     split_data = tab_data[0].str.split(' ', n=-1, expand=True)
     tab_data[0] = numpy.where(split_data[1].astype(float) < 0,tab_data[0],"it like " + tab_data[0])
     tab_data = tab_data[0].str.split(' ', expand=True, n=-1)

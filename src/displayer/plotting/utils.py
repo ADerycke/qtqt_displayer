@@ -30,3 +30,24 @@ def get_scale(total):
         min_scale = 0.05
     
     return max_scale, min_scale
+
+def val_to_str(valeur, prefixe = '', remplacement = '', sufixe = '', test = 0): # change valeur to display for exploration parameters
+    if float(valeur) != valeur :
+        text = remplacement
+    elif valeur == test:
+        text = remplacement
+    else:
+        valeur = float(valeur)
+        if "%" in sufixe : valeur = valeur * 100
+        text = prefixe + str(round(valeur)) + sufixe
+        
+    return text
+
+def val_to_time_str(valeur):
+    if round(valeur,0)/60/60 >= 1:
+        text = str(round(valeur/60/60,1)) + ' h.'
+    else:
+        text = str(round(valeur/60)) + ' min.'
+    
+    return text
+

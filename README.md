@@ -9,15 +9,24 @@ It provides both a graphical user interface (GUI) and a command-line mode to exp
 
 ## 🧩 Features
 
-* Load and parse QTQt output files
+* Load and parse **QTQt** output files
 * Display thermal history and model results using **matplotlib** plots
 * Intuitive **PySide6**-based graphical interface
-* Command-line mode for automated or batch processing (`main_no_interface.py`)
+* Command-line mode for automated or batch processing
 * Modular architecture (data parsing, plotting, and GUI layers separated)
 
 ---
 
 ## VERSION - UP DATE
+
+* 1.0.3 : 
+    - gui : update the gui from the 0.4.4 to the 1.0.3
+    - bug correction - on the process_one_file() run
+    - bug correction - for the FT chart (observed data bar position are now well position)
+    - update - panda new version (deep modification of parser)
+    - new - add plot detrital data inversion (history plot)
+    - update - change/simplification in the t_T path predicted plot (code only)
+    - update - os.path to pathlib (correct space in pathfiles)
 
 * 1.0.2 : 
     - completly remove pyQT for the no graphical code
@@ -39,21 +48,32 @@ qtqt_displayer/
     │   └── displayer/    
     │        │── __init__.py
     │        │
-    │        ├── ui/                 # Qt interface management
-    │        │   │── main_window.py      # Main application windows
-    │        │   │── dialogs.py          # Secondary widgets (dialogs, color picker, etc.)
-    │        │   └── resources/          # Help files, icons, etc.
+    │        ├── app/            # usable simple code
+    │        │   │── __init__.py
+    │        │   │── gui.py          # launch the full application with a graphical interface 
+    │        │   └── cli.py          # launch the full application without a graphical interface
     │        │
     │        ├── data/               # Data parsing and manipulation
     │        │   │── __init__.py
     │        │   │── datatypes.py        # Data type classes
-    │        │   │── parser.py           # extract_* functions for QTQt files
+    │        │   │── parser.py           # extract functions for QTQt files
     │        │   └── utils.py            # Helper functions
     │        │
     │        ├── plotting/           # Plotting utilities and figure generation
     │        │   │── __init__.py
+    │        │   │── customfig.py       # definition of the custom complete fig (matplotlib multifig Class)
     │        │   │── plotter.py         # Functions for figure generation and graph data injection
     │        │   └── utils.py           # Helper functions
+    │        │
+    │        ├── ressources/         # incomming list of parameters
+    │        │   └──  
+    │        │
+    │        │============ OPTIONAL : GRAPHICAL INTERFACE =======================================
+    │        │
+    │        ├── ui/                 # Qt interface management
+    │        │   │── main_window.py      # Main application windows
+    │        │   │── dialogs.py          # Secondary widgets (dialogs, color picker, etc.)
+    │        │   └── resources/          # Help files, icons, etc.
     │        │
     │        └── core/               # Application logic and threading
     │             │── __init__.py
@@ -82,7 +102,7 @@ You can install **qtqt-displayer** using `pip` and a local clone:
 # code only
 pip install git+https://github.com/ADerycke/qtqt_displayer.git@main
 
-# with full graphical user interface
+# code with the full graphical user interface
 pip install "displayer[gui] @ git+https://github.com/ADerycke/qtqt_displayer.git@main"
 ```
 
@@ -92,18 +112,37 @@ pip install "displayer[gui] @ git+https://github.com/ADerycke/qtqt_displayer.git
 
 ### Launch the GUI version
 
+MacOS :
 ```bash
 displayer-gui
 ```
-(if your are one Windows, add the .exe at the end)
-or
+
+Windows :
+```bash
+displayer-gui.exe
+```
+
+Through python (all platform):
 ```bash
 python -m displayer.app.gui
 ```
 
+### Create a shortcut for the GUI version
+
+MacOS : 
+in a bash get the path link to the app using the following command :
+```bash
+which displayer-gui
+```
+Then open Automator > new file > Application > Add a shell script > past the obtain path > create the shortcut
+
+Windows :
+the .exe is located to the python script folder (variable for each python installation),
+if you don't know where it's located, shearch for the displayer-gui.exe through your computer files (normaly in the user>AppData)
+
 ### Run without GUI (batch mode)
 
-open the `main_no_interface.py` and play with it to understand how qtqt_displayer lib work. 
+open the `cli.py` and play with it to understand how qtqt_displayer lib work. 
 This file contain all the parser / plotting function without GUI aspect, so you can use it to automate any process
 
 ---
@@ -112,7 +151,7 @@ This file contain all the parser / plotting function without GUI aspect, so you 
 
 * The codebase is organized into independent modules (`data`, `plotting`, `ui`, `core`) to facilitate maintenance and extension.
 * The GUI is based on **Qt (PySide6)** with modular dialogs and main windows.
-* The plotting engine uses **matplotlib**, ensuring compatibility with standard Python scientific workflows.
+* The plotting engine uses **matplotlib**.
 
 ---
 
@@ -128,7 +167,7 @@ This project is released under the **CC Licence** .
 
 ---
 
-## 👥 Authors & Acknowledgments
+## 👥 Author & Acknowledgments
 
 Developed by **Alexis Derycke**.
 Special thanks to the QTQt software authors, Kerry Gallagher and the thermochronology community.

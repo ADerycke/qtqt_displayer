@@ -2,7 +2,8 @@
 
 #basic librairy
 import numpy
-from xarray import DataArray
+#☺from xarray import DataArray
+#from ast import literal_eval
 
 #for plotting 
 #from matplotlib.gridspec import GridSpec
@@ -12,7 +13,7 @@ from matplotlib.ticker import FuncFormatter, MultipleLocator
 from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Rectangle, Patch
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, to_rgba
 
 from scipy.interpolate import UnivariateSpline
 from pyrolite.util.time import Timescale
@@ -20,65 +21,6 @@ from pyrolite.util.time import Timescale
 #internal lib
 from . import utils
 
-# == FIG : init ==
-
-# ORIGINAL FIGURE DEFINITION, MOVE FOR V1.0.0 TO CUSTOMFIG 
-# def built_inverse_fig(*, fig=None):
-#     #init matplotlib fig
-#     if not fig :
-#         fig = figure(figsize=(17, 6))
-#         fig.tight_layout()
-#         fig.subplots_adjust(left=0.04, right=0.96, bottom=0.1, top=0.9)
-    
-#     #figure generale
-#     structure = GridSpec(
-#         ncols=8,
-#         width_ratios=[1, 0.2, 1, 0.6, 1, 1, 1, 0.05],
-#         nrows=6,
-#         height_ratios=[0.2, 1, 1, 1, 1, 1],
-#     )
-    
-#     #add chart sub plot
-#     fig.plot_FT = fig.add_subplot(structure[1:3, 0])
-#     fig.plot_FT_bis = fig.plot_FT.twinx()
-    
-#     fig.plot_like = fig.add_subplot(structure[1, 2])
-#     fig.plot_post = fig.add_subplot(structure[2, 2])
-#     fig.plot_age = fig.add_subplot(structure[3:5, 2])
-    
-#     fig.plot_history = fig.add_subplot(structure[1:5, 4:7])
-#     fig.plot_history_bis = fig.plot_history.twinx()
-#     fig.plot_timescale = fig.add_subplot(structure[0, 4:7], sharex=fig.plot_history)
-    
-#     fig.plot_hist_legen = fig.add_subplot(structure[1:5, 7])
-    
-#     #info de modelisation
-#     #add info sub plot
-#     fig.plot_samples = fig.add_subplot(structure[3:, 0])
-#     fig.plot_plot_parameters = fig.add_subplot(structure[5, 1])
-#     fig.plot_hist_parameters = fig.add_subplot(structure[5, 3:7])
-
-
-#     # chart layout
-#     layout_iteration(fig)
-#     layout_pred_ages(fig)
-#     layout_LFT(fig)
-#     layout_history(fig)
-#     layout_time_scale(fig)
-    
-#     layout_informations(fig.plot_samples)
-#     layout_informations(fig.plot_plot_parameters)
-#     layout_informations(fig.plot_hist_parameters)
-    
-#     return fig
-
-# def built_resample_fig(*, fig=None, num_graphs=2):  
-#     if fig :
-#         fig.set_size_inches(10, num_graphs * 4, forward=True)
-#     else:
-#         fig = figure(figsize=(10, num_graphs * 4))
-#     fig.axs = fig.subplots(num_graphs, 1, sharex=True) 
-#     return fig
 
 # === FIG : plot_iteration === plot_iteration(data_tT):
 
@@ -101,7 +43,9 @@ def plot_iteration(plot_list, data_tT, info_list):
     plot_post.plot(x, y_bis, color='blue', linewidth = 0.5)
 
     # Defining the label
-    plot_like.set_xlabel('Exploration info.' + ' (' + info_list['time total'] +')')
+    
+    
+    plot_like.set_xlabel('Exploration info.' + ' (' + utils.val_to_time_str(info_list['time total']) +')')
         
     y_min, y_max = plot_post.get_ylim()
     x_min, x_max = plot_post.get_xlim()
@@ -153,7 +97,10 @@ def layout_iteration(plot_list):
 
 # === FIG : plot_pred_ages(data_He, data_FT) ===
 
-def plot_pred_ages(plot_age, tabl_He_like, tabl_He_post, tabl_He_expect, tabl_FT_like, tabl_FT_post, tabl_FT_expect, color_list,*, model='like'):
+def plot_pred_ages(plot_age, 
+                   tabl_He_like, tabl_He_post, tabl_He_expect, 
+                   tabl_FT_like, tabl_FT_post, tabl_FT_expect, 
+                   sample_list,*, model='like'):
     
     plot_age.clear()
     
@@ -169,15 +116,16 @@ def plot_pred_ages(plot_age, tabl_He_like, tabl_He_post, tabl_He_expect, tabl_FT
         data_He = tabl_He_like
         data_FT = tabl_FT_like
         #txt_info = 'max likelihood'
-
+        
+    #plot the He data
     if len(data_He) !=0 :
         for i in range(data_He.shape[0]):
             x = data_He[i,:,2].astype(dtype=float)
             dx = data_He[i,:,3].astype(dtype=float)
             y = data_He[i,:,0].astype(dtype=float)
             dy = data_He[i,:,1].astype(dtype=float)
-            nom = data_He[i,0,8].str.replace(".txt","").str.replace("_"," ")
-            nom = str(nom.values)
+            nom = data_He[i,0,8].values
+            
             for j in range(len(x)):  #obligation d'itération pour le cas où des cristaux sont différents
                 crystal_num = data_He[i,j,9].astype(dtype=float)
                 if crystal_num==0 : #apatite
@@ -188,8 +136,9 @@ def plot_pred_ages(plot_age, tabl_He_like, tabl_He_post, tabl_He_expect, tabl_FT
                     crystal_type = "v"
                 else:
                     crystal_type = ","#pixel
+                
                 plot_age.scatter(x[j] , y[j], s=30,
-                                 color=color_list[nom],
+                                 color=sample_list.get_color_by_name(nom),
                                  marker=crystal_type,
                                  label=nom,
                                  linewidths=0.5,
@@ -198,24 +147,24 @@ def plot_pred_ages(plot_age, tabl_He_like, tabl_He_post, tabl_He_expect, tabl_FT
                 plot_age.errorbar(x[j] , y[j], xerr=dx[j], yerr=dy[j],
                                        fmt=crystal_type,
                                        markersize=0,
-                                       ecolor=color_list[nom])
+                                       ecolor=sample_list.get_color_by_name(nom))
     
+    #plot the FT data
     if len(data_FT) !=0 :
         for i in range(data_FT.shape[0]):
             x = data_FT[i,0,1].astype(dtype=float)
             y = data_FT[i,0,0].astype(dtype=float)
             dx = data_FT[i,0,3].astype(dtype=float)
             dy = data_FT[i,0,2].astype(dtype=float)
-            nom = data_FT[i,0,4].str.replace(".txt","").str.replace("_"," ")
-            nom = str(nom.values)
+            nom = data_FT[i,0,4].values
             plot_age.scatter(x , y, s=30,
-                             color=color_list[nom],
+                             color=sample_list.get_color_by_name(nom),
                              marker="s",
                              label=nom,
                              linewidths=0.5,
                              edgecolors = "black",
                              alpha=0.50)
-            plot_age.errorbar(x , y, xerr=dx, yerr=dy, fmt="s", markersize=0, ecolor=color_list[nom])
+            plot_age.errorbar(x , y, xerr=dx, yerr=dy, fmt="s", markersize=0, ecolor=sample_list.get_color_by_name(nom))
 
     # Layout mandatory
     y_min, y_max = plot_age.get_ylim()
@@ -275,7 +224,7 @@ def layout_pred_ages(plot_age):
 
 # === FIG : plot_LFT(data_LFT, data_FT) === note : bar position on QTQt are not the same ansd can note be reproduce simply....
 
-def plot_LFT(plot_list, data_LFT, color_list, *, model='Like'):
+def plot_LFT(plot_list, data_LFT, sample_list, *, model='Like'):
     
     # == detail graph ==
     plot_FT = plot_list[0]
@@ -291,25 +240,33 @@ def plot_LFT(plot_list, data_LFT, color_list, *, model='Like'):
     elif 'Expect' in model:
         data_type = 4
     
-    #gestion de la largeur des barres
+    #gestion de la largeur et transparence des barres
     nb_LFT = 0
     for n in range(data_LFT.shape[0]):
         if numpy.nansum(data_LFT[n,:,1].astype(dtype=float)) > 0:
             nb_LFT=nb_LFT+1
-            width = 0.8/nb_LFT
     
-    nb_LFT_bis = 0
+    width = 0.8
+    if nb_LFT == 1 :
+        alpha_FT = 0.5
+    else:
+        alpha_FT = 0.1
+    
+    #ajout des barre (stacker les une sur les autres pour plus de lisibilité)
     for n in range(data_LFT.shape[0]):
         if numpy.nansum(data_LFT[n,:,1].astype(dtype=float)) > 0:
-            nb_LFT_bis = nb_LFT_bis+1
+            #nb_LFT_bis = nb_LFT_bis+1
             x = data_LFT[n,:,0].astype(dtype=float)
             y_curve = data_LFT[n,:,data_type].astype(dtype=float)
             y_bar = data_LFT[n,:,1].astype(dtype=float)
+            
             nom = data_LFT[n,0,5]
-            nom = str(nom.values).replace(".txt","").replace("_"," ").replace("(","").replace(")","")
-            width_mod = (nb_LFT_bis - nb_LFT / 2) * width - width / 2
-            plot_FT.bar(x+(width_mod), y_bar, width=width, color=color_list[nom], edgecolor="black", linewidth=0.5, alpha=0.5)
-            plot_FT_bis.plot(x, y_curve, color=color_list[nom], linewidth=3, alpha=1)
+            color = sample_list.get_color_by_name(nom)
+            
+            color = to_rgba(color)[:3] # recuperation du rgb
+            
+            plot_FT.bar(x - 0.5, y_bar, width=width, align='center', facecolor=(*color, alpha_FT), edgecolor=(*color, 1.0), linewidth=1)
+            plot_FT_bis.plot(x, y_curve, color=sample_list.get_color_by_name(nom), linewidth=3, alpha=1)
 
     y_min, y_max = plot_FT.get_ylim()
     major, minor = utils.get_scale((y_max - y_min))
@@ -369,14 +326,18 @@ def layout_LFT(plot_list):
 
 # === FIG : plot_histoire(data_tT_plot, data_Chemin_plot, data_Chemin_vertical, data_constrain, *, classement='Max like', gradiant=30, surface_t=10, time_min=-1, time_max=0, temp_min=-10, temp_max=0, constante=[0], vertical_profile=False):
  
-def plot_histoire(plot_list, data_tT, data_Chemin, data_Chemin_vertical, data_constrain, *, 
+def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
+                  data_stat=None, enveloppe="vide", grid_info = [],
+                  tqdm_stream='',
+                  
                   history='all', color='Max like', classement='Max like', 
-                  gradiant=30, surface_t=10, time_min=-1, time_max=0, temp_min=-10, temp_max=0, 
-                  constante=[0], colormap=[''], vertical_profile='no',
-                  data_stat="vide", enveloppe="vide", grid_info = [],
-                  tqdm_stream=''
+                  gradiant=30, surface_t=10, time_min=0, time_max=-1, temp_min=0, temp_max=-1, 
+                  predicted_path = ['Max Like', 'Max Post', 'Expected'], main_sample = 0,
+                  constante=[0], colormap=[''],
+                  
+                  parameters=None,
                   ):   
-
+    
     # == detail graph ==
     custom_fig = plot_list[0]
     plot_history = plot_list[1]
@@ -386,44 +347,181 @@ def plot_histoire(plot_list, data_tT, data_Chemin, data_Chemin_vertical, data_co
     plot_history.clear()
     plot_history_bis.clear()
     plot_hist_legen.clear()
+    
+    # == cas du passage d'info par un bibliotheque
+    if parameters != None :
+        history = parameters['chemin']
+        color = parameters['hist_color']
+        classement = parameters['classement']
+        gradiant = parameters['gradiant']
+        time_min = parameters['time_min']
+        time_max = parameters['time_max']
+        temp_min = parameters['temp_min']
+        temp_max = parameters['temp_max']
+        predicted_path = parameters['predicted_paths']
+        main_sample = parameters['main_sample']
+        colormap = parameters['colormap']
+        
 
     x_max=time_max
     x_min=time_min
     y_max=temp_max
     y_min=temp_min
     
-    #filter the non-used t(T) paths for the predicted vertical
-    if vertical_profile == "Max Likelihood":
-        filter_vertical = numpy.where((data_Chemin_vertical.loc[:,1,2] != "Max Like"))[0]
-        vertical_color = "blue"
-        vertical_marker = "dashed"
-    elif vertical_profile == "Max Posterior": 
-        filter_vertical = numpy.where((data_Chemin_vertical.loc[:,1,2] != "Max Post"))[0]
-        vertical_color = "grey"
-        vertical_marker = "dashed"
-    elif vertical_profile == "Expected": 
-        filter_vertical = numpy.where((data_Chemin_vertical.loc[:,1,2] != "EXPECTED"))[0]
-        vertical_color = "black"
-        vertical_marker = "solid"
-    else:
-        filter_vertical = numpy.where((data_Chemin_vertical.loc[:,1,2] != "EXPECTED"))[0]
-    data_Chemin_vertical = data_Chemin_vertical.sel(Chemin=~data_Chemin_vertical.Chemin.isin(filter_vertical))
+    # == Filter the non-used t(T) paths for the predicted vertical
+    # path to show - maintenant on garde les matchs
+    filters = []
+    if "Max Likelihood" in predicted_path:
+        filter_like = numpy.where(data_Chemin_pred.loc[:,1,2] == "Max Like")[0]
+        filters.append(filter_like)
+    if "Max Posterior" in predicted_path:
+        filter_post = numpy.where(data_Chemin_pred.loc[:,1,2] == "Max Post")[0]
+        filters.append(filter_post)
+    if "Max Mode" in predicted_path:
+        filter_mode = numpy.where(data_Chemin_pred.loc[:,1,2] == "Max Mode")[0]
+        filters.append(filter_mode)
+    if "Expected" in predicted_path:
+        filter_expect = numpy.where(data_Chemin_pred.loc[:,1,2] == "EXPECTED")[0]
+        filters.append(filter_expect)
+    # add the envelopp - on garde les matchs
+    if history == 'simple':
+        filter_envelop = numpy.where(['Envelop' in val  for val in data_Chemin_pred.loc[:, 1, 2].values])[0]
+        filters.append(filter_envelop)
     
-    #prep data if stat rather than all
-    if isinstance(data_stat, str):
-        Z_masked = ""
+    # filter if only one sample need
+    if str(main_sample).isdigit() :
+        #note : dico have an key "name" also
+        filter_sample = numpy.where([sample == main_sample for sample in data_Chemin_pred.loc[:, 0, 2].values])[0]
+        sample_filter = filter_sample
+    
+    # Application des filtres OU pour les premiers filtres (on garde les matchs)
+    if len(filters) > 0:
+        combined_filter = filters[0]
+        for filter in filters[1:]:
+            combined_filter = numpy.union1d(combined_filter, filter)  # Union (OU)
     else:
-        # create the meshgrid for the t(T) file
-        X_Time = numpy.arange(0, grid_info[0] * grid_info[1], grid_info[1])
-        Y_Temp = numpy.linspace(-grid_info[3],grid_info[2]-grid_info[3], grid_info[2])
-        X, Y = numpy.meshgrid(X_Time, Y_Temp)
-        # select the sample to display and hide the data near 0
-        Z = data_stat[0,:,:]
-        no_nul_data_stat = data_stat.where(data_stat != 0)
-        Z_masked = numpy.ma.masked_less(Z, no_nul_data_stat.min())
+        combined_filter = numpy.array([], dtype=int)
+    
+    # Application du filtre ET pour le sample (on garde les matchs)
+    if str(main_sample).isdigit() :
+        combined_filter = numpy.intersect1d(combined_filter, sample_filter)  # Intersection (ET)
+    data_Chemin_pred_filtered = data_Chemin_pred.sel(Chemin=data_Chemin_pred.Chemin.isin(combined_filter))
 
     
-    # legende
+    # simlificate the data_array for plotting decouper 
+    data_Chemin_pred_filtered_clean = data_Chemin_pred_filtered.drop_sel(X=[2])
+    data_Chemin_pred_filtered_clean = data_Chemin_pred_filtered_clean.drop_sel(Y=[0])
+    data_Chemin_pred_filtered_clean = data_Chemin_pred_filtered_clean.astype(float)
+
+    # == built data for envelopp ploting :
+    if history == 'simple':
+        all_env_time = {} #X
+        all_env_sup = {}  #Y
+        all_env_inf = {}  #Y
+        all_env_color = {}
+        
+        mem = ''
+        for n in range(data_Chemin_pred_filtered.shape[0]):
+            sample = data_Chemin_pred_filtered[n,0,2].values.item() 
+            type_info = str(data_Chemin_pred_filtered[n,1,2].values.item())
+            
+            if sample.id_ != mem :
+                mem = sample.id_
+                env = 0
+            
+            if 'Envelop' in type_info :
+                env += 1
+    
+                if env == 1:
+                    tempo_time = data_Chemin_pred_filtered[n, :, 0].astype(dtype=float)
+                    tempo_temp_sup = data_Chemin_pred_filtered[n, :, 1].astype(dtype=float)
+                else:
+                    tempo_temp_inf = data_Chemin_pred_filtered[n, :, 1].astype(dtype=float)
+                
+                    all_env_time[mem] = tempo_time
+                    all_env_sup[mem] = tempo_temp_sup
+                    all_env_inf[mem] = tempo_temp_inf
+                    all_env_color[mem] = sample.color_ 
+
+    
+    
+    # == Filter data if 'heatmap' represenation rather than 'all'
+    if history == "heatmap" and data_stat is not None:
+        # Initialisation des structures pour stocker les résultats
+        all_X = []
+        all_Y = []
+        all_Z_masked = []
+        max_Y_heatmap = -1
+        max_X_heatmap = -1
+        
+        # Boucle sur tous les échantillons
+        for n in range(len(grid_info)):
+            # Création de la grille temps/température
+            X_Time = numpy.arange(0, grid_info[n]["nb_time"] * grid_info[n]["time_step"],
+                              grid_info[n]["time_step"])
+            Y_Temp = numpy.linspace(-grid_info[n]["max_tempe"],
+                                grid_info[n]["nb_tempe"]-grid_info[n]["max_tempe"],
+                                grid_info[n]["nb_tempe"])
+            X, Y = numpy.meshgrid(X_Time, Y_Temp)
+        
+            # Extraction des données pour l'échantillon courant
+            Z = data_stat[n, :, :]
+        
+            # select the sample to display and hide the data near 0
+            no_nul_data_stat = Z.where(Z != 0)
+            Z_masked = numpy.ma.masked_less(Z, no_nul_data_stat.min())
+        
+            # Stockage des résultats
+            all_X.append(X)
+            all_Y.append(Y)
+            all_Z_masked.append(Z_masked)
+            
+            # calculate max for the range (latter min and max)
+            valid = ~Z_masked.mask
+            max_Y_heatmap = max(max_Y_heatmap, Y_Temp[numpy.where(valid)[0]].max())
+            max_X_heatmap = max(max_X_heatmap, X_Time[numpy.where(valid)[1]].max())
+            
+        
+    # == Order t(T) paths if  and color
+    if history == 'all' :
+        if 'Like' in color:
+            a=1
+        elif 'Post' in color:
+            a=2
+        data_tT_trie = data_tT.sortby(data_tT[:,a,3])
+        data_color = data_tT_trie[:,a,3]
+        if 'Iter' in classement:
+            a=0
+        data_tT_trie = data_tT.sortby(data_tT[:,a,3])
+        
+        # simlificate the data_array for plotting decouper 
+        data_tT_plot = data_tT_trie.drop_sel(X=[2,3])
+        
+
+    #init min and max :
+    if x_max == -1 :
+        if history == 'all':
+            x_max = data_tT_plot[:,:,0].max()*1.05
+        elif history == 'heatmap':
+            x_max = max_X_heatmap*1.05
+        else:
+            x_max = data_Chemin_pred_filtered_clean[:,:,0].max()*1.05
+    if y_max == -1 :
+        if history == 'all':
+            y_max = data_tT_plot[:,:,1].max()*1.05
+        elif history == 'heatmap':
+            y_max = max_Y_heatmap*1.05
+        else:
+            y_max = data_Chemin_pred_filtered_clean[:,:,1].max()*1.05
+    if x_min == -1 : x_min = 0
+    if y_min == -1 : y_min = 0
+    
+    if custom_fig :
+        custom_fig.tT_min_time = x_min
+        custom_fig.tT_max_time = x_max
+        
+    # == Paths and legend layout
+    #paths 
     if history=='all':
         if 'Like' in color:
             text_legend_1 = 't(T) path likelihood'
@@ -434,83 +532,57 @@ def plot_histoire(plot_list, data_tT, data_Chemin, data_Chemin_vertical, data_co
     elif history=='heatmap':
         text_legend_1 = 'Percent of all paths'
     
-    # fonction de couleur et classement   
-    if 'Like' in color:
-        a=1
-    elif 'Post' in color:
-        a=2
-    data_tT_trie = data_tT.sortby(data_tT[:,a,3])
-    data_color = data_tT_trie[:,a,3]
-    if 'Iter' in classement:
-        a=0
-    data_tT_trie = data_tT.sortby(data_tT[:,a,3])
-    
-    #creation de la cmap
+    #init cmap for color
     if colormap == 'QTQt_old':
         cmap = LinearSegmentedColormap.from_list("mycmap", ['blue','cyan','lime','yellow','magenta','red'])
     else:
         cmap = colormap
 
-    #decouper les donnee en forme 
-    data_tT_plot = data_tT_trie.drop_sel(X=[2,3])
-    data_Chemin_plot = data_Chemin.drop_sel(X=[2])
-    data_Chemin_vertical_plot = data_Chemin_vertical.drop_sel(X=[2])
-    data_Chemin_vertical_plot = data_Chemin_vertical_plot.astype(float)
+    # == Simple path layout
+    chemin_style = ["--" for x in range(data_Chemin_pred_filtered.shape[0])]
+    chemin_color = ["black" for x in range(data_Chemin_pred_filtered.shape[0])]
+    chemin_width = [1 for x in range(data_Chemin_pred_filtered.shape[0])]
 
-    #def des min et max
-    if x_max == 0 : x_max = data_tT_plot[:,:,0].max()*1.05
-    if y_max == 0 : y_max = data_tT_plot[:,:,1].max()*1.05
-    if vertical_profile != 'no' :
-        y_max_vertical = data_Chemin_vertical_plot[:,:,1].max()*1.05
-        if y_max_vertical > y_max: y_max = y_max_vertical
-
-    #def la mise en page des chemins
-    chemin_style = ["--" for x in range(data_Chemin.shape[0])]
-    chemin_color = ["black" for x in range(data_Chemin.shape[0])]
-    chemin_width = [1 for x in range(data_Chemin.shape[0])]
-
-    chemin_envelop = DataArray(
-        data=[[numpy.nan for i in range(3)] for j in range(data_Chemin.shape[1])],
-        coords={'X': range(3), 'Y': range(data_Chemin.shape[1])},
-        dims=('Y', 'X')
-        )
-    env=1
-    for n in range(data_Chemin.shape[0]):
-        if data_Chemin[n,0,2] == 'Max likelihood':
+    for n in range(data_Chemin_pred_filtered.shape[0]):
+        sample = data_Chemin_pred_filtered[n,0,2].values.item() 
+        type_info = str(data_Chemin_pred_filtered[n,1,2].values.item())
+        
+        if 'max like' in type_info.lower() :
             chemin_style[n]= 'dashed'
             chemin_color[n]= 'blue'
             chemin_width[n]= 1.5
-        elif data_Chemin[n,0,2] == 'Max posterior':
+        
+        elif 'max post' in type_info.lower():
             chemin_style[n]= 'dashed'
             chemin_color[n]= 'white'
             chemin_width[n]= 1.5
-        elif data_Chemin[n,0,2] == 'Expected model':
-            chemin_style[n]= 'solid'
-            chemin_color[n]= 'black'
-            chemin_width[n]= 4
-            n_expect = n
-        elif data_Chemin[n,0,2] == 'Max mode model':
+        
+        elif 'max mode' in type_info.lower():
             chemin_style[n]= 'dotted'
             chemin_color[n]= 'grey'
             chemin_width[n]= 0.5
-        elif 'Envelope ' in str(data_Chemin[n,0,2]):
+        
+        elif 'expect' in type_info.lower():
+            chemin_style[n]= 'solid'
+            chemin_color[n]= sample.color_
+            chemin_width[n]= 4
+        
+        elif 'envelop' in type_info.lower():
             chemin_style[n]= 'dotted'
-            chemin_color[n]= 'black'
+            chemin_color[n]= sample.color_
             chemin_width[n]= 1.5
-            chemin_envelop[:,0]=data_Chemin[n,:,0]
-            chemin_envelop[:,env]=data_Chemin[n,:,1]
-            env = env + 1
 
-    #add t(T) paths as LineCollection (go faster for lot of paths)
-    if history=='all':
-        if isinstance(tqdm_stream, str):
+
+    # == Plot exploration t(T) paths 
+    if history=='all': #all paths
+        if isinstance(tqdm_stream, str): #case for no interface
             t_T_path_graph = LineCollection(data_tT_plot,
                                             cmap=cmap,
                                             array=data_color,
                                             linewidths=0.01,
                                             linestyles='solid',
                                             alpha=1)
-        else:
+        else: #connecte to the time interface
             from tqdm import tqdm
             t_T_path_graph = LineCollection(tqdm(data_tT_plot, file=tqdm_stream),
                                             cmap=cmap,
@@ -519,62 +591,73 @@ def plot_histoire(plot_list, data_tT, data_Chemin, data_Chemin_vertical, data_co
                                             linestyles='solid',
                                             alpha=1)
         plot_history.add_collection(t_T_path_graph)
-        # == legende ===
+        
+        # legende
         plot_hist_legen.set_visible(True)
         legende_1 = custom_fig.colorbar(t_T_path_graph,cax=plot_hist_legen, orientation="vertical", aspect = 40, label=text_legend_1)
         legende_1.ax.tick_params(labelsize='x-small', labelrotation=45)
-        #add predicted paths
-        chemin = LineCollection(data_Chemin_plot,
-                                  colors = chemin_color,
-                                  linewidths=chemin_width,
-                                  linestyles=chemin_style,
-                                  alpha=0.75)
-        plot_history.add_collection(chemin)
     
-    #add envoloppe rather than t(T) paths
-    elif history == 'simple': 
-        plot_history.fill_between(chemin_envelop[:,0], chemin_envelop[:,1],chemin_envelop[:,2], alpha=0.2, color= "grey")
-        plot_hist_legen.set_visible(False)
-        #add predicted paths
-        chemin = LineCollection(data_Chemin_plot,
-                                  colors = chemin_color,
-                                  linewidths=chemin_width,
-                                  linestyles=chemin_style,
-                                  alpha=0.75)
-        plot_history.add_collection(chemin)
+    elif history == 'heatmap':  #add meshgrid and envelopp
         
-    #add meshgrid and envelopp
-    elif history == 'heatmap': 
-        # Créez une figure
-        t_T_path_graph = plot_history.contourf(X, Y, Z_masked, 25, cmap=cmap, alpha=1)
-        plot_hist_legen.set_visible(True)
-        legende_1 = custom_fig.colorbar(t_T_path_graph, cax=plot_hist_legen, orientation="vertical", aspect = 40, label=text_legend_1)
-        legende_1.ax.tick_params(labelsize='x-small', labelrotation=0)
-        for cle, valeur in enveloppe.items():
+        #security
+        if not str(main_sample).isdigit() : main_sample = 0
+    
+        #heatmap
+        t_T_path_graph = plot_history.contourf(all_X[main_sample], all_Y[main_sample], all_Z_masked[main_sample], 25, cmap=cmap, alpha=1)
+        
+        #envelop
+        for cle, valeur in enveloppe[main_sample].items():
             if "068" in cle : color = "white"
             if "096" in cle : color = "gray"
             if "100" in cle : color = "black"
             #lissage
-            spline = UnivariateSpline(X_Time, valeur) 
-            y_smooth = spline(X_Time)
-            plot_history.plot(X_Time, y_smooth, color = color, linewidth=0.75, alpha=0.75)
-        #add only the expected path
-        plot_history.plot(data_Chemin_plot[n_expect,:,0].astype(dtype=float), data_Chemin_plot[n_expect,:,1].astype(dtype=float),   
-                                  color = chemin_color[n_expect],
-                                  linewidth=2,
-                                  linestyle=chemin_style[n_expect],
-                                  alpha=0.75)
+            spline = UnivariateSpline(all_X[main_sample][0], valeur) 
+            y_smooth = spline(all_X[main_sample][0])
+            plot_history.plot(all_X[main_sample][0], y_smooth, color = color, linewidth=0.75, alpha=0.75)
+        
+        #legende
+        plot_hist_legen.set_visible(True)
+        legende_1 = custom_fig.colorbar(t_T_path_graph, cax=plot_hist_legen, orientation="vertical", aspect = 40, label=text_legend_1)
+        legende_1.ax.tick_params(labelsize='x-small', labelrotation=0)
+        
+    elif history == 'simple': #add envoloppe rather than t(T) paths
+        if str(main_sample).isdigit(): # cas one sample to plot 
+            plot_history.fill_between(
+                all_env_time[main_sample],
+                all_env_sup[main_sample],
+                all_env_inf[main_sample],
+                alpha=0.2,
+                color=all_env_color[main_sample]
+            )
+        else:
+            for n in range(len(all_env_time)):
+                plot_history.fill_between(
+                                        all_env_time[n],all_env_sup[n],all_env_inf[n],
+                                        alpha=0.2,
+                                        color=all_env_color[n]
+                                        )
+            
+        #legende
+        plot_hist_legen.set_visible(False)
+
     
-    #add vertical paths
-    if vertical_profile != 'no' :
-        chemin_vertical = LineCollection(data_Chemin_vertical_plot,
-                                          colors = vertical_color,
-                                          linewidths=1.5,
-                                          linestyles=vertical_marker,
-                                          alpha=0.75)
-        plot_history.add_collection(chemin_vertical)
+    # == Plot predicted t(T) paths 
+    chemin = LineCollection(data_Chemin_pred_filtered_clean,
+                                      colors = chemin_color,
+                                      linewidths=2,
+                                      linestyles=chemin_style,
+                                      alpha=0.75)
+    plot_history.add_collection(chemin)
 
 
+    # === plot the expected path to add another scale (depth) ===
+    x = data_Chemin_pred_filtered_clean[0,0].astype(dtype=float)
+    y = data_Chemin_pred_filtered_clean[0,1].astype(dtype=float)
+    y_bis = numpy.divide(y-surface_t,gradiant)
+    plot_history_bis.plot(x, y_bis, color='red', alpha=0) #transparent path    
+    
+    
+    # == additionnale data to plot
     #add the temperature line
     for n in range(len(constante)):
         if constante[n] != 0:
@@ -605,19 +688,13 @@ def plot_histoire(plot_list, data_tT, data_Chemin, data_Chemin_vertical, data_co
         plot_history.add_patch(Rectangle((time_ori,temp_ori), -time_d, -temp_d,
                                          alpha= 0.5, linestyle= tiret, linewidth = size,
                                          edgecolor=color, facecolor='white', fill=fill, zorder=3))
-    
-    
-    # === plot the expected path to add another scale (depth) ===
-    x = data_Chemin_plot[2,:,0].astype(dtype=float)
-    y = data_Chemin_plot[2,:,1].astype(dtype=float)
-    y_bis = numpy.divide(y-surface_t,gradiant)
-    plot_history_bis.plot(x, y_bis, color='red', alpha=0) #transparent path
-    
+        
     # === Layout updated ==    
     #axes min-max
     plot_history.set_xlim(x_max, x_min)
     plot_history.set_ylim(y_max, y_min)
     
+    plot_history_bis.set_xlim(x_max, x_min)
     plot_history_bis.set_ylim((y_max-surface_t)/gradiant, (y_min-surface_t)/gradiant)
     
     #axes name
@@ -738,7 +815,7 @@ def layout_history(plot_list):
 # === FIG : plot_time_scale(*, niveau='Epoch', data_tT, **,time_min=-1, time_max=0, temp_min=-1, temp_max=0): ===
 #['Eon', 'Era', 'Period', 'Superepoch', 'Epoch', 'Age']
 
-def plot_time_scale(plot_timescale, data_tT, *, niveau='Epoch', time_min=-1, time_max=0, temp_min=-1, temp_max=0):
+def plot_time_scale(plot_timescale, *, niveau='Epoch', time_min=-1, time_max=-1):
     
     plot_timescale.clear()
     
@@ -757,13 +834,13 @@ def plot_time_scale(plot_timescale, data_tT, *, niveau='Epoch', time_min=-1, tim
 
     x_max=time_max
     x_min=time_min
-    y_max=temp_max
-    y_min=temp_min
-    if x_max == 0 : x_max = data_tT[:,:,0].max()*1.05
-    if y_max == 0 : y_max = data_tT[:,:,1].max()*1.05
+    
+    if x_min == -1 : x_min = 0
+    if x_max == -1 : x_max = 10
+    
     major, minor = utils.get_scale(x_max - x_min)
     
-    plot_timescale.set_xlim(x_max, x_min)
+    # plot_timescale.set_xlim(x_max, x_min)
     plot_timescale.xaxis.set_major_locator(MultipleLocator(major))
     plot_timescale.xaxis.set_minor_locator(MultipleLocator(minor))
     plot_timescale.set_xlabel('Time [Ma]')
@@ -787,37 +864,37 @@ def add_hist_information(plot_hist_parameters, parameters):
     legend_str=[
         #column :
         'Acceptance :',
-        'birth = ' + str(parameters['Acceptance Birth']) + '%',
-        'death = ' + str(parameters['Acceptance Death']) + '%',
+        'point birth = ' + utils.val_to_str(parameters['Acceptance Birth'],sufixe='%'),
+        'point death = ' + utils.val_to_str(parameters['Acceptance Death'],sufixe='%'),
         '',
         '',
             
         #column 1:
-        'Move (accep. rate) :',
-        'time = ' + str(parameters['time gaussian']) + ' Ma (' + str(parameters['Acceptance time']) + '%)',
-        'temp. = ' + str(parameters['temperature gaussian']) + '°C (' + str(parameters['Acceptance temperature']) + '%)',
-        'offset = ' + str(parameters['offset gaussian']) + ' ' + str(parameters['Acceptance offset']),
+        't(T) point move :',
+        'time = ' + utils.val_to_str(parameters['time gaussian'],sufixe='Ma', remplacement='no') + ' ' + utils.val_to_str(parameters['Acceptance time'],prefixe='(',sufixe='%)'),
+        'temp. = ' +  utils.val_to_str(parameters['temperature gaussian'], sufixe='°C', remplacement='no') + ' ' +  utils.val_to_str(parameters['Acceptance temperature'], prefixe='(', sufixe='%)'),
+        'offset = ' +  utils.val_to_str(parameters['offset gaussian'], sufixe='°/km', remplacement='no') + ' ' +   utils.val_to_str(parameters['Acceptance offset'], prefixe='(', sufixe='%)'),
         '',
         
         #column 2:
-        'Resample (accep. rate) :',
-        'FT = ' + str(parameters['FT resample']) + str(parameters['Acceptance FT']),
-        'He = ' + str(parameters['He resample']) + str(parameters['Acceptance He']),
-        'VR = ' + str(parameters['VR resample']) + str(parameters['Acceptance VR']),
+        'Error resample :',
+        'FT = ' +  utils.val_to_str(parameters['FT resample'], sufixe='%', remplacement='no') + ' ' +  utils.val_to_str(parameters['Acceptance FT'],prefixe='(',sufixe='%)'),
+        'He = ' +  utils.val_to_str(parameters['He resample'], sufixe='%', remplacement='no') + ' ' +  utils.val_to_str(parameters['Acceptance He'],prefixe='(',sufixe='%)'),
+        'VR = ' +  utils.val_to_str(parameters['VR resample'], sufixe='%', remplacement='no') + ' ' +  utils.val_to_str(parameters['Acceptance VR'],prefixe='(',sufixe='%)'),
         '',
         
         #column 3:
         'Exploration param. :',
         'keep complex histories = ' + str(parameters['Keep complex history']), 
-        'resample out of prior = ' + str(parameters['Gaussian exploration']),
-        'maximum rate = ' + str(parameters['Rate tolerance']) + '°/Ma',
-        'paths show = 1 on ' + str(parameters['Thinning']),
+        'resample outside of prior = ' + str(parameters['Gaussian exploration']),
+        'dT/dt limite = ' +  utils.val_to_str(parameters['Max allowable dTdt'],sufixe='°/Ma', remplacement='no', test = 1000),
+        'paths keep = 1 over ' + str(parameters['Thinning']),
         
         #column 4:
-        'Calculation step (ap. - oth.) :',
-        'diffusion = ' + str(parameters['Temperature steps diffusion Ap']) + '°C - ' + str(parameters['Temperature steps diffusion Other']) + '°C',
-        'annealing = ' + str(parameters['Temperature steps radi dam Ap']) + '°C - ' + str(parameters['Temperature steps radi dam Other']) + '°C',
-        'FT adapatative time = ' + str(parameters['Adaptive time step']),
+        'Calculation param. :',
+        'diffusion (ap.-oth.) = ' + utils.val_to_str(parameters['Temperature steps diffusion Ap'], sufixe='°C') + ' - ' + utils.val_to_str(parameters['Temperature steps diffusion Other'], sufixe='°C'),
+        'annealing (ap.-oth.) = ' + utils.val_to_str(parameters['Temperature steps radi dam Ap'], sufixe='°C') + ' - ' + utils.val_to_str(parameters['Temperature steps radi dam Other'], sufixe='°C'),
+        'FT adapatative timestep = ' + str(parameters['Adaptive time step']),
         '',
         ]
     
@@ -915,13 +992,14 @@ def add_plotted_information(plot_plot_parameters, inversion_param):
             
 # === FIG : plot_legend
 
-def add_samples(plot_samples, sample_list, color_list):
+def add_samples(plot_samples, sample_list):
         
     legend_elements = []
     
-    for n in sample_list:
-        nom = sample_list[n]['name']
-        legend_elements.append(Patch(facecolor=color_list[nom], edgecolor='black', alpha=0.5, label=nom))
+    for sample in sample_list.list_summary_samples():
+        nom = sample.name_
+        color = sample.color_
+        legend_elements.append(Patch(facecolor=color, edgecolor='black', alpha=0.5, label=nom))
     
     plot_samples.legend(
         title='Samples (files) :',
@@ -945,83 +1023,85 @@ def layout_informations(subplot):
     subplot.patch.set_alpha(0.0)
 
 
-# === FIG : plot_resample ===
+# === FIG : plot_resample === no more use, move to custom fig
 
-def plot_resample(self, data_init, data_resample, sample_list, color_list):
+# def plot_resample(self, data_init, data_resample, sample_list):
     
-    num_sample = data_init.shape[0] 
-    linestyles = ['-', '--', '-.', ':', (0, (5, 1)), (0, (3, 5, 1, 5)), (0, (5, 5)), (0, (3, 1, 1, 1)), 
-                  (0, (1, 1)), (0, (5, 10))]
+#     num_sample = data_init.shape[0] 
+#     linestyles = ['-', '--', '-.', ':', (0, (5, 1)), (0, (3, 5, 1, 5)), (0, (5, 5)), (0, (3, 1, 1, 1)), 
+#                   (0, (1, 1)), (0, (5, 10))]
 
-    #premier graph likelihood
-    graph_pos = 0
-    x = data_resample[0, 0, :].astype(int)
-    y = data_resample[0, 1, :].astype(float)
-    self.axs[graph_pos].plot(x, y, linestyle='-', color='red', linewidth = 0.5)
-    self.axs[graph_pos].set_ylabel('likelihood')
+#     #premier graph likelihood
+#     graph_pos = 0
+#     x = data_resample[0, 0, :].astype(int)
+#     y = data_resample[0, 1, :].astype(float)
+#     self.axs[graph_pos].plot(x, y, linestyle='-', color='red', linewidth = 0.5)
+#     self.axs[graph_pos].set_ylabel('likelihood')
 
-    #deuxieme graph FT kin
-    graph_pos = 1
-    for i in range(num_sample):
-        x = data_resample[i, 0, :].astype(int)
-        y = data_resample[i, 2, :].astype(float)
-        self.axs[graph_pos].plot(x, y, linestyle="-", color=color_list[sample_list[i]['name']])
-    self.axs[graph_pos].set_ylabel('FT kinetic\nparameters')
+#     #deuxieme graph FT kin
+#     graph_pos = 1
+#     for i in range(num_sample):
+#         x = data_resample[i, 0, :].astype(int)
+#         y = data_resample[i, 2, :].astype(float)
+#         self.axs[graph_pos].plot(x, y, linestyle="-", color=sample_list.get_color_by_id(i))
+#     self.axs[graph_pos].set_ylabel('FT kinetic\nparameters')
     
-    # Boucle sur chaque ligne de data_init
-    graph_pos = 1
-    for i in range(num_sample):
-        tempo_nb_he = int(data_init[i, 5])
+#     # Boucle sur chaque ligne de data_init
+#     graph_pos = 1
+#     for i in range(num_sample):
+#         tempo_nb_he = int(data_init[i, 5])
         
-        if tempo_nb_he > 0 :
-            graph_pos = 1 + graph_pos
-            # Boucle sur le nombre de courbes à tracer pour ce subplot
-            for j in range(tempo_nb_he):
-                x = data_resample[i, 0, :].astype(int)
-                y = data_resample[i, 3 + j, :].astype(float)
-                y_bis = sample_list[i]['eU_' + str(j)] * (1+(y/100))
+#         if tempo_nb_he > 0 :
+#             graph_pos = 1 + graph_pos
+#             # Boucle sur le nombre de courbes à tracer pour ce subplot
+#             tab_eU_tempo = sample_list.get_tabeU_by_id(i)
+            
+#             for j in range(tempo_nb_he):
+#                 x = data_resample[i, 0, :].astype(int)
+#                 y = data_resample[i, 3 + j, :].astype(float)
+#                 y_bis = tab_eU_tempo[j] * (1+(y/100))
 
-                # Tracer la courbe dans le subplot correspondant à l'index i
-                self.axs[graph_pos].plot(x, y_bis, linestyle=linestyles[j % len(linestyles)], color=color_list[sample_list[i]['name']])
+#                 # Tracer la courbe dans le subplot correspondant à l'index i
+#                 self.axs[graph_pos].plot(x, y_bis, linestyle=linestyles[j % len(linestyles)], color=sample_list.get_color_by_id(i))
 
-            # Ajouter des labels et une légende à chaque subplot
-            self.axs[graph_pos].set_ylabel(sample_list[i]['name'] + '\neU [ppm]')
+#             # Ajouter des labels et une légende à chaque subplot
+#             self.axs[graph_pos].set_ylabel(sample_list.get_name_by_id(i) + '\neU [ppm]')
     
-    num_graphs = graph_pos + 1
-    for i in range(num_graphs):
-        # Masquer les axes x de tous les subplots sauf le premier et le dernier
-        self.axs[i].spines['bottom'].set_visible(False)
-        self.axs[i].spines['top'].set_visible(False)
-        self.axs[i].xaxis.set_tick_params(which='major', direction='inout', length=5, width=1, 
-                                 color='black', labelcolor='black', top=True, bottom=True)
-        self.axs[i].xaxis.set_tick_params(which='minor', direction='in', length=2, width=0.5, 
-                                 color='black', labelcolor='black', top=True, bottom=True)
-        self.axs[i].yaxis.set_tick_params(which='major', direction='inout', length=5, width=1, 
-                                 color='black', labelcolor='black', left=True, right=True)
-        self.axs[i].yaxis.set_tick_params(which='minor', direction='in', length=2, width=0.5, 
-                                 color='black', labelcolor='black', left=True, right=True)
+#     num_graphs = graph_pos + 1
+#     for i in range(num_graphs):
+#         # Masquer les axes x de tous les subplots sauf le premier et le dernier
+#         self.axs[i].spines['bottom'].set_visible(False)
+#         self.axs[i].spines['top'].set_visible(False)
+#         self.axs[i].xaxis.set_tick_params(which='major', direction='inout', length=5, width=1, 
+#                                  color='black', labelcolor='black', top=True, bottom=True)
+#         self.axs[i].xaxis.set_tick_params(which='minor', direction='in', length=2, width=0.5, 
+#                                  color='black', labelcolor='black', top=True, bottom=True)
+#         self.axs[i].yaxis.set_tick_params(which='major', direction='inout', length=5, width=1, 
+#                                  color='black', labelcolor='black', left=True, right=True)
+#         self.axs[i].yaxis.set_tick_params(which='minor', direction='in', length=2, width=0.5, 
+#                                  color='black', labelcolor='black', left=True, right=True)
         
-        if i == 0 : 
-            self.axs[i].spines['bottom'].set_visible(True)
-            self.axs[i].spines['top'].set_visible(True) 
-            self.axs[i].set_xlabel('iteration')
-            self.axs[i].xaxis.set_label_position('top')
-        elif i == 1:
-            self.axs[i].get_xaxis().set_visible(True)
-            self.axs[i].xaxis.set_label_position('top')
-            self.axs[i].spines['top'].set_visible(True)
-            self.axs[i].tick_params(axis='x', labeltop=True, labelbottom=False)
-            self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
-        elif i == num_graphs - 1:  # Le dernier subplot
-            self.axs[i].get_xaxis().set_visible(True)
-            self.axs[i].xaxis.set_label_position('bottom')
-            self.axs[i].spines['bottom'].set_visible(True)
-            self.axs[i].set_xlabel('iteration')
-            self.axs[i].tick_params(axis='x', labeltop=False, labelbottom=True)
-            self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
+#         if i == 0 : 
+#             self.axs[i].spines['bottom'].set_visible(True)
+#             self.axs[i].spines['top'].set_visible(True) 
+#             self.axs[i].set_xlabel('iteration')
+#             self.axs[i].xaxis.set_label_position('top')
+#         elif i == 1:
+#             self.axs[i].get_xaxis().set_visible(True)
+#             self.axs[i].xaxis.set_label_position('top')
+#             self.axs[i].spines['top'].set_visible(True)
+#             self.axs[i].tick_params(axis='x', labeltop=True, labelbottom=False)
+#             self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
+#         elif i == num_graphs - 1:  # Le dernier subplot
+#             self.axs[i].get_xaxis().set_visible(True)
+#             self.axs[i].xaxis.set_label_position('bottom')
+#             self.axs[i].spines['bottom'].set_visible(True)
+#             self.axs[i].set_xlabel('iteration')
+#             self.axs[i].tick_params(axis='x', labeltop=False, labelbottom=True)
+#             self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
     
-    # Ajuster l'espacement entre les subplots
-    #self.fig.tight_layout()
+#     # Ajuster l'espacement entre les subplots
+#     #self.fig.tight_layout()
 
 
 

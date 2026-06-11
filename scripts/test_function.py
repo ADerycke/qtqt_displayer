@@ -22,7 +22,20 @@ from displayer.plotting.customfig import InverseFig, ResampleFig
 from displayer.core import savers, workers
 
 
-#%% CHARGER UN FICHIER
+#for debug
+#import importlib
+
+
+##%% CHARGER UN FICHIER 
+# load files
+# filepath = savers.get_file()[0]
+current_dir = path.dirname(path.abspath(__file__))
+parent_dir = path.dirname(current_dir)
+filepaths = [parent_dir + '\examples\\test.txt']
+filepath = filepaths[0]
+
+
+##%% CHANGER LES PARAMETRES
 #list of option for plotting / saving
 inversion_param = {
     'auto_save_path' : False, # True, False
@@ -30,7 +43,7 @@ inversion_param = {
     'tab_format' : '', # '', '.csv', '.xlsx'
     'fig_format': '', # '', ".png", ".pdf", ".svg",
     
-    'chemin' : 'heatmap', #'all', 'heatmap', 'simple'
+    'chemin' : 'simple', #'all', 'heatmap', 'simple'
     'colormap' : 'viridis_r', #'cividis_r', 'jet', 'QTQt_old',...
     'classement':'Likelihood', #"Posterior", "Iteration"
     'hist_color' : "Likelihood", # "Posterior"
@@ -47,12 +60,9 @@ inversion_param = {
     
     'vertical_profile' : "no", # "Max Likelihood", "Max Posterior", "Expected"
     }
-        
-   
-# load files
-filepath = savers.get_file()[0]
 
-#%% VARIABLE GLOBALES
+
+
 # GENERAL PARAMETERS
 tab_color=None
 if tab_color is None :
@@ -83,13 +93,13 @@ params = {
          }
 rcParams.update(params)
 
-#%% OUVRIR LE FICHIER    
+##%% OUVRIR LE FICHIER    
 QTQt_summary = read_csv(filepath, sep='chaineimpossible', engine='python', encoding='latin1')
 
 # test to see if their is additionnal informationnal files
 file_name, file_ext = path.splitext(filepath)
 test_path_percent_files = file_name + "_tto_fix" + file_ext #predicted envelope
-if path.exists(test_path_percent_files):
+if path.exists(test_path_percent_files) and inversion_param['chemin']=='heatmap':
     QTQt_tto_fix = read_csv(test_path_percent_files, sep='chaineimpossible', engine='python', header=None)
 else:
     QTQt_tto_fix = "vide"
@@ -99,32 +109,41 @@ if path.exists(test_resample_files):
 else:
     QTQt_Hierachical = "vide"
 
-#%% PROCESS LE FICHIER
+#"%% PROCESS LE FICHIER
 data_inversion = RInversion()
 
 #get/load color dictionnary
-if 'color_list' in globals() :
-    data_inversion.color_list, data_inversion.sample_list = parser.get_colorlist(QTQt_summary, tab_color)
-else:
-    data_inversion.color_list, data_inversion.sample_list = parser.get_colorlist(QTQt_summary, tab_color)
+data_inversion.color_list, data_inversion.sample_list = parser.get_samples(QTQt_summary, file_name)
 data_inversion.info_list = parser.get_inversion_info(QTQt_summary)
 
 
-#%% get data from the file
+
+##%% get data from the file
 data_inversion.tabl_tT_history = parser.extract_tT_history(QTQt_summary)
 #optional files
 if not isinstance(QTQt_tto_fix, str):
     data_inversion.tabl_grid_history, data_inversion.distrib_envelopp, data_inversion.grid_info = parser.extract_grid_history(QTQt_tto_fix)
+
 if not isinstance(QTQt_Hierachical, str):
     data_inversion.tab_init_resample, data_inversion.tab_resample = parser.extract_resample(QTQt_Hierachical)
 
-#%%results
+##%%results
 data_inversion.tabl_constrain = parser.extract_constrain(QTQt_summary)
-data_inversion.tabl_tT_pred = parser.extract_tT_pred(QTQt_summary)
-data_inversion.tabl_tT_pred_vertical = parser.extract_tT_pred_vertical(QTQt_summary, data_inversion.sample_list)
-data_inversion.tabl_He_like, data_inversion.tabl_He_post, data_inversion.tabl_He_expect = parser.extract_He_Ages(QTQt_summary)
+data_inversion.tabl_tT_pred = parser.extract_tT_pred_samples(QTQt_summary, data_inversion.sample_list)
+
 data_inversion.tabl_FT_like, data_inversion.tabl_FT_post, data_inversion.tabl_FT_expect = parser.extract_FT_Ages(QTQt_summary)
 data_inversion.tabl_LFT = parser.extract_FT_Length(QTQt_summary)
+tabl_He_like, data_inversion.tabl_He_post, data_inversion.tabl_He_expect = parser.extract_He_Ages(QTQt_summary)
+
+#%%
+
+tabl_tT_pred = parser.extract_tT_pred(QTQt_summary)
+tabl_tT_pred_vertical = parser.extract_tT_pred_vertical(QTQt_summary, data_inversion.sample_list)
+
+#%%
+
+print(tabl_tT_pred_vertical)
+
 
 
 #%% update list info
@@ -147,6 +166,7 @@ if not isinstance(QTQt_Hierachical, str):
 displayer_figure = figure(FigureClass=InverseFig)
 displayer_figure.show()
 
+
 #%% AFFICHER LA FIGURE PRINCIPAL
 displayer_figure.plot_iteration(data_inversion.tabl_tT_history, data_inversion.info_list)
 displayer_figure.plot_pred_ages(data_inversion.tabl_He_like, data_inversion.tabl_He_post, data_inversion.tabl_He_expect,
@@ -162,9 +182,14 @@ else:
                   history=inversion_param['chemin'], gradiant=inversion_param['gradiant'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'],
                   colormap=inversion_param['colormap'], vertical_profile=inversion_param['vertical_profile'])
 displayer_figure.plot_time_scale(data_inversion.tabl_tT_history, niveau=inversion_param['niveau'], time_min=inversion_param['time_min'], time_max=inversion_param['time_max'], temp_min=inversion_param['temp_min'], temp_max=inversion_param['temp_max'])
-displayer_figure.add_information(data_inversion.info_list)
+
+#%% AFFICHER INFORMATION
+displayer_figure = figure(FigureClass=InverseFig)
+displayer_figure.add_hist_information(data_inversion.info_list)
+displayer_figure.add_plotted_information(inversion_param)
 displayer_figure.add_samples(data_inversion.sample_list, data_inversion.color_list)
-displayer_figure.canvas.draw()
+#displayer_figure.draw()
+
 
 #%% AFFICHER LA FIGURE SECONDAIRE
 if not isinstance(QTQt_Hierachical, str):

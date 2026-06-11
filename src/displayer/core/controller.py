@@ -13,10 +13,6 @@ Relie l'UI (MainWindow) avec la logique métier (parser, plotter, exports).
 #dicuss with the machine
 import traceback
 
-#for plotting 
-from matplotlib.colors import TABLEAU_COLORS, hex2color
-from matplotlib.pyplot import rcParams
-
 #for the Qt window
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtCore import QThread, Signal
@@ -25,11 +21,15 @@ from PySide6.QtCore import QThread, Signal
 # === Import logique interne ===
 from displayer.ui.main_window import MainWindow, ResampleWindow
 from displayer.ui.dialogs import ProgressWindow, ColorSelectionDialog, HelpWindow, ErrorDialog
+
 from displayer.data import parser
-from displayer.data.datatypes import RInversion
+from displayer.data.datatypes import RInversion, SampleList
+from displayer.data.utils import init_color_table
+
 from displayer.plotting.customfig import InverseFig
 
 from . import savers, workers
+
 
 
 class Controller():
@@ -43,36 +43,12 @@ class Controller():
         self.parameters = self.get_inversion_parameters()
         self.process = False
         
-        self.tab_sample = {}
-        self.color_list = []
-        self.invers_data = RInversion()
+        self.invers_data = None
+        self.samples_list = None
         self.resample_window = None
         
         #Generate a base color list
-        self.tab_color = {}
-        n=1
-        for i in range(50):
-            for item, value in TABLEAU_COLORS.items():
-                self.tab_color["sample " + str(n)] = hex2color(value)
-                n = n + 1
-        del n
-
-        #font size and figure parameters :
-        font_size = 11
-        params = {
-                 'legend.title_fontsize': font_size + 2,
-                 'legend.fontsize': font_size,
-                 'axes.labelsize': font_size,
-                 'axes.titlesize':font_size + 2,
-                 'xtick.labelsize':font_size - 2,
-                 'ytick.labelsize':font_size - 2,
-                 'font.size':font_size - 2,
-                 "axes.titlecolor": "black",
-                 "axes.labelcolor": "black",
-                 "xtick.color": "black",
-                 "ytick.color": "black",
-                 }
-        rcParams.update(params)
+        self.color_list = init_color_table()
         
     # --------------------------
     # == Process long (MainProcess)
@@ -93,7 +69,7 @@ class Controller():
             self.tqdm_stream = LoadingProcess()
             self.tqdm_stream.progress.connect(self.progress_window.update_sub_progress)
             
-            self.process_inverse = InvertProcess(self, filespaths, self.get_inversion_parameters(), self.tab_color)
+            self.process_inverse = InvertProcess(self, filespaths, self.get_inversion_parameters(), self.color_list, self.samples_list)
             self.process_inverse.setObjectName("inverse")
             
             self.process_inverse.progress.connect(self.progress_window.update_progress)
@@ -108,13 +84,12 @@ class Controller():
         
         else:
             self.main_window.button_process.setDisabled(False)
-
-        
+   
     def get_inversion_parameters(self):
         return self.main_window.send_inversion_parameters()  
     
     def export_data(self, export_type:str):
-        if len(self.invers_data.sample_list) > 0:
+        if len(self.invers_data.samples_list) > 0:
             filespath = savers.get_path(extension=".xlsx, .csv")
             if len(filespath)> 0 :
                 self.process_export = ExportData(self.invers_data, export_type, filespath)
@@ -143,11 +118,16 @@ class Controller():
     # --------------------------
     def get_data(self, window_name, data):
         if window_name == "color_picker":
-            self.color_list = data
-            self.invers_data.color_list = data
+            self.re_draw_fig('age', self.main_window.displayer_fig)
+
         elif window_name == "invers_process":
-            self.invers_data.set_data(data)
-            self.tab_sample = self.invers_data.sample_list
+            if self.invers_data == None :
+                self.invers_data = RInversion(data = data)
+            else:
+                self.invers_data.set_data(data)
+            
+            self.color_list = data['color_list']
+            self.samples_list = data['sample_list']
     
     def show_hide_wind(self, window_name, action):
         if window_name == "progress":
@@ -197,43 +177,32 @@ class Controller():
     # --------------------------
     
     def re_draw_fig(self, fig_type, fig:InverseFig):
-        if len(self.invers_data.sample_list) > 0:
+        if self.invers_data.sample_list != None:
             self.parameters = self.get_inversion_parameters()
             
             if fig_type == "time_scale":
-                fig.plot_time_scale(self.invers_data.tabl_tT_history,
-                                        niveau=self.parameters['niveau'], time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'])
+                fig.plot_time_scale(niveau=self.parameters['niveau'])
             
             elif fig_type == "age":
                 fig.plot_pred_ages(self.invers_data.tabl_He_like, self.invers_data.tabl_He_post, self.invers_data.tabl_He_expect,
                                        self.invers_data.tabl_FT_like, self.invers_data.tabl_FT_post, self.invers_data.tabl_FT_expect,
-                                       self.invers_data.color_list, model=self.parameters['model'])
-                fig.plot_LFT(fig, self.invers_data.tabl_LFT, self.invers_data.color_list, model=self.parameters['model'])
+                                       self.invers_data.sample_list, model=self.parameters['model'])
+                fig.plot_LFT(self.invers_data.tabl_LFT, self.invers_data.sample_list, 
+                             model=self.parameters['model'])
             
             elif fig_type == "history":
                 
-                if "tabl_grid_history" in self.invers_data :
-                    fig.plot_histoire(self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_tT_pred_vertical, self.invers_data.tabl_constrain,
-                                          classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
-                                          time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
-                                          colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
-                                          data_stat=self.invers_data.tabl_grid_history, enveloppe=self.invers_data.distrib_envelopp,grid_info = self.invers_data.grid_info,
-                                          #tqdm_stream=self.tqdm_stream
-                                          )
-                else:
-                    fig.plot_histoire(self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_tT_pred_vertical, self.invers_data.tabl_constrain,
-                                          classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
-                                          time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
-                                          colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
-                                          #tqdm_stream=self.tqdm_stream
-                                          )
+                fig.plot_histoire(self.invers_data.tabl_tT_history, self.invers_data.tabl_tT_pred, self.invers_data.tabl_constrain,
+                                    parameters=self.parameters
+                                    )
+            
             
     def action_help(self, graph_nom):
         help_window = HelpWindow(graph_nom)
         help_window.exec_()
         
     def action_colors_picker(self):
-        color_window = ColorSelectionDialog(self.tab_sample, self.color_list)
+        color_window = ColorSelectionDialog(self.samples_list, self.color_list)
         color_window.send_data.connect(self.get_data)
         color_window.exec_()
 
@@ -248,16 +217,17 @@ class InvertProcess(QThread):
     send_data = Signal(str,object)
     error = Signal(str,str,str)
     
-    def __init__(self, main_process, filepaths, parameters, tab_color):
+    def __init__(self, main_process, filepaths, parameters, color_list, samples_list):
         super().__init__()
         self.main_process = main_process
         #self.tqdm_stream = tqdm_stream
         self.displayer_fig = self.main_process.main_window.displayer_fig
         self.filepaths = filepaths
         self.parameters = parameters
-        self.tab_color = tab_color
+        self.color_list = color_list
         self.nb_file_total = len(filepaths)
         self.n_file = 0
+        self.samples_list = samples_list
         
         self.show_wind.emit('progress',True)
         #window.progress_window.show() # à garder pour une raison inconnue
@@ -281,18 +251,24 @@ class InvertProcess(QThread):
     def run(self):
         for n in range(self.nb_file_total):
             self.n_file = n
+            filepath = self.filepaths[n]
+                        
+            if self.samples_list == None :
+                self.samples_list = SampleList(filepath)
+            else:
+                self.samples_list.summary_name_ = filepath
             
             #OUVRIR LE FICHIER
             self.send_signal(0, 'reading file')
             try:
-                QTQt_summary, QTQt_tto_fix, QTQt_Hierachical = workers.read_QTQt_files(self.filepaths[n])                
+                QTQt_summary, QTQt_tto_fix, QTQt_Hierachical = workers.read_QTQt_files(filepath)                
             except:
                 self.error_handler('open files')
             
             #GET SAMPLES INFORMATION  
             self.send_signal(1, 'samples determination')
             try:
-                info_list, sample_list, color_list, tabl_constrain = workers.samples_info(QTQt_summary, self.tab_color)
+                info_list, self.samples_list, self.color_list, tabl_constrain = workers.samples_info(QTQt_summary, filepath, self.samples_list, self.color_list)
             except:
                 self.error_handler('get samples info')
             
@@ -309,6 +285,7 @@ class InvertProcess(QThread):
                     self.file_Hierachical = True
                     tab_init_resample, tab_resample = parser.extract_resample(QTQt_Hierachical)
                 #self.tqdm_stream.write(' 100%]')
+                        
             except:
                 self.error_handler('get t(T) histories')
 
@@ -317,8 +294,7 @@ class InvertProcess(QThread):
                 self.send_signal(3, 'getting resutls')
                 tabl_constrain = parser.extract_constrain(QTQt_summary)
                 #self.tqdm_stream.write(' 20%]')
-                tabl_tT_pred = parser.extract_tT_pred(QTQt_summary)
-                tabl_tT_pred_vertical = parser.extract_tT_pred_vertical(QTQt_summary, sample_list)
+                tabl_tT_pred = parser.extract_tT_pred_samples(QTQt_summary, self.samples_list)
                 #self.tqdm_stream.write(' 40%]')
                 tabl_He_like, tabl_He_post, tabl_He_expect = parser.extract_He_Ages(QTQt_summary)
                 #self.tqdm_stream.write(' 60%]')
@@ -326,25 +302,36 @@ class InvertProcess(QThread):
                 #self.tqdm_stream.write(' 80%]')
                 tabl_LFT = parser.extract_FT_Length(QTQt_summary)
                 #self.tqdm_stream.write('100%]')
+                
+                # handle detrital/vertical data
+                if self.parameters["main_sample"] == "oldest":
+                    self.parameters["main_sample"] = self.samples_list.get_max_time_summary()
+                
             except:
                 self.error_handler('get predictions')
             
             #USE RESAMPLE
             try: 
                 k = -1
-                if self.file_Hierachical:
-                    for i in sample_list:
-                        it_maxlike = tab_resample[i,1,:].argmax().item()
-                        sample_list[i]['FT_kin'] = float(tab_resample[i,2,it_maxlike])
-                        tab_eU_percent = tab_resample[i,3:,it_maxlike]
-        
+                if not isinstance(QTQt_Hierachical, str):
+                    for sample in self.samples_list.list_summary_samples():
+                        sample_index = sample.id_
+                        
+                        it_maxlike = tab_resample[sample_index,1,:].argmax().item()
+                        sample.FT_kin_ = float(tab_resample[sample_index,2,it_maxlike])
+                        tab_eU_percent = tab_resample[sample_index,3:,it_maxlike]
+                        
                         #test if there is He data
                         if not tab_eU_percent.isnull().values[0] :
+                            tab_tempo = []
                             k = k + 1
                             for j in range(len(tab_eU_percent)):
                                 if not tab_eU_percent.isnull().values[j] :
                                     tab_eU_mod = tabl_He_like[k,:,6]
-                                    sample_list[i]['eU_' + str(j)] = float(tab_eU_mod[j].values) / (1+(float(tab_eU_percent[j].values)/100))
+                                    tab_tempo.append(float(tab_eU_mod[j].values) / (1+(float(tab_eU_percent[j].values)/100)))
+                            
+                            sample.eU_tab_ = tab_tempo
+            
             except:
                 self.error_handler('get use resample')
             
@@ -359,12 +346,12 @@ class InvertProcess(QThread):
             try:
                 self.displayer_fig.plot_pred_ages(tabl_He_like, tabl_He_post, tabl_He_expect,
                                        tabl_FT_like, tabl_FT_post, tabl_FT_expect,
-                                       color_list, model=self.parameters['model'])
+                                       self.samples_list, model=self.parameters['model'])
             except:
                 self.error_handler('drawing predicted ages/LFT')
             
             try:
-                self.displayer_fig.plot_LFT(tabl_LFT, color_list, model=self.parameters['model'])
+                self.displayer_fig.plot_LFT(tabl_LFT, self.samples_list, model=self.parameters['model'])
             except:
                 self.error_handler('')
             
@@ -372,26 +359,19 @@ class InvertProcess(QThread):
             self.send_signal(5, 'drawing t(T) paths')
             try:
                 if self.file_tto_fix:
-                    self.displayer_fig.plot_histoire(tabl_tT_history, tabl_tT_pred, tabl_tT_pred_vertical, tabl_constrain,
-                                          classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
-                                          time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
-                                          colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
+                    self.displayer_fig.plot_histoire(tabl_tT_history, tabl_tT_pred, tabl_constrain,
                                           data_stat=tabl_grid_history, enveloppe=distrib_envelopp,grid_info = grid_info,
-                                          #tqdm_stream=self.tqdm_stream
-                                          )
+                                          parameters=self.parameters
+                                          )   
                 else:
-                    self.displayer_fig.plot_histoire(tabl_tT_history, tabl_tT_pred, tabl_tT_pred_vertical, tabl_constrain,
-                                          classement=self.parameters['classement'], color=self.parameters['hist_color'], history=self.parameters['chemin'], gradiant=self.parameters['gradiant'],
-                                          time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'],
-                                          colormap=self.parameters['colormap'], vertical_profile=self.parameters['vertical_profile'],
-                                          #tqdm_stream=self.tqdm_stream
+                    self.displayer_fig.plot_histoire(tabl_tT_history, tabl_tT_pred, tabl_constrain,
+                                          parameters= self.parameters
                                           )                      
             except:
                 self.error_handler('drawing t(T) paths')
             
             try:
-                self.displayer_fig.plot_time_scale(tabl_tT_history,
-                                        niveau=self.parameters['niveau'], time_min=self.parameters['time_min'], time_max=self.parameters['time_max'], temp_min=self.parameters['temp_min'], temp_max=self.parameters['temp_max'])
+                self.displayer_fig.plot_time_scale(niveau=self.parameters['niveau'])
             except:
                 self.error_handler('drawing time_scale')
             
@@ -399,7 +379,7 @@ class InvertProcess(QThread):
             try:                
                 self.displayer_fig.add_hist_information(info_list)
                 self.displayer_fig.add_plotted_information(self.parameters)
-                self.displayer_fig.add_samples(sample_list, color_list)
+                self.displayer_fig.add_samples(self.samples_list)
             except:
                 self.error_handler('writting information')
             
@@ -414,9 +394,13 @@ class InvertProcess(QThread):
                 for i in range(tab_init_resample.shape[0] ):
                     if int(tab_init_resample[i, 5]) > 0 : num_graphs = num_graphs + 1      
                 self.main_process.resample_window.resample_figure.update_size(num_graphs)
+                self.main_process.resample_window.resize_window(num_graphs)
                 
-                self.main_process.resample_window.resample_figure.plot_resample(tab_init_resample, tab_resample, sample_list, color_list) 
+                self.main_process.resample_window.resample_figure.plot_resample(tab_init_resample, tab_resample, self.samples_list) 
+                
+                #self.main_process.resample_window.resample_figure.update_font()
                 self.main_process.resample_window.canvas.draw()
+                
                 self.show_wind.emit("resample",True)
             else:
                 self.stop.emit("resample")
@@ -440,26 +424,26 @@ class InvertProcess(QThread):
             except:
                 self.error_handler('auto save')
             
-            #PUT DATA IN MEMORY
-            data={'info_list':info_list, 'sample_list':sample_list, 'color_list':color_list,
-                'tabl_constrain':tabl_constrain,
-                'tabl_tT_history':tabl_tT_history, 'tabl_tT_pred':tabl_tT_pred,'tabl_tT_pred_vertical':tabl_tT_pred_vertical,
-                'tabl_He_like':tabl_He_like, 'tabl_He_post':tabl_He_post, 'tabl_He_expect':tabl_He_expect,
-                'tabl_FT_like':tabl_FT_like, 'tabl_FT_post':tabl_FT_post, 'tabl_FT_expect':tabl_FT_expect,
-                'tabl_LFT':tabl_LFT
-                }
-            
-            if self.file_tto_fix :
-                data['tabl_grid_history']=tabl_grid_history
-                data['distrib_envelopp']=distrib_envelopp
-                data['grid_info']=grid_info
-            if self.file_Hierachical :
-                data['tab_init_resample']=tab_init_resample
-                data['tab_resample']=tab_resample
-            
-            self.send_data.emit('invers_process', data)
-            
-            self.send_signal(8, '')
+        #PUT DATA IN MEMORY
+        data={'info_list':info_list, 'sample_list':self.samples_list, 'color_list':self.color_list,
+            'tabl_constrain':tabl_constrain,
+            'tabl_tT_history':tabl_tT_history, 'tabl_tT_pred':tabl_tT_pred,
+            'tabl_He_like':tabl_He_like, 'tabl_He_post':tabl_He_post, 'tabl_He_expect':tabl_He_expect,
+            'tabl_FT_like':tabl_FT_like, 'tabl_FT_post':tabl_FT_post, 'tabl_FT_expect':tabl_FT_expect,
+            'tabl_LFT':tabl_LFT
+            }
+        
+        if self.file_tto_fix :
+            data['tabl_grid_history']=tabl_grid_history
+            data['distrib_envelopp']=distrib_envelopp
+            data['grid_info']=grid_info
+        if self.file_Hierachical :
+            data['tab_init_resample']=tab_init_resample
+            data['tab_resample']=tab_resample
+        
+        self.send_data.emit('invers_process', data)
+        
+        self.send_signal(8, '')
             
             
 class ExportData(QThread): 

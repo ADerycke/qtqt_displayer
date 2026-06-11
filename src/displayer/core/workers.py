@@ -33,8 +33,8 @@ def read_QTQt_files(filepath):
     
     return QTQt_summary, QTQt_tto_fix, QTQt_Hierachical
 
-def samples_info(QTQt_summary, tab_color, *, color_list=''):
-    color_list, sample_list = parser.get_colorlist(QTQt_summary, tab_color, color_list=color_list)
+def samples_info(QTQt_summary, file_name, samples_list, color_list):
+    color_list, sample_list = parser.get_samples(QTQt_summary, file_name, tab_color=color_list, tab_sample=samples_list)
     info_list = parser.get_inversion_info(QTQt_summary)
     tabl_constrain = parser.extract_constrain(QTQt_summary)
     

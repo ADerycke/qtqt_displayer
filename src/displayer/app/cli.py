@@ -12,8 +12,6 @@ import os
 
 # figure lib
 from matplotlib.pyplot import figure
-from matplotlib.colors import TABLEAU_COLORS, hex2color
-from matplotlib.pyplot import rcParams
 
 # internal lib
 from displayer.data import parser
@@ -23,35 +21,11 @@ from displayer.core import savers, workers
 
 
 # GENERAL FUNCTION TO PROCESS FILES
-def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, font_size = 11):
-    
-    # GENERAL PARAMETERS
-    if tab_color is None :
-        # load an initial color liste for sample
-        tab_color = {}
-        # generer un table de couleurs / noms d'échantillons de base de 50 (limite maximum)
-        n=1
-        for i in range(50):
-            for item, value in TABLEAU_COLORS.items():
-                tab_color["sample " + str(n)] = hex2color(value)
-                n = n + 1
-        del n
-        
-    #matplotlib police parameters, don't change it if not needed
-    params = {
-             'legend.title_fontsize': font_size + 2,
-             'legend.fontsize': font_size,
-             'axes.labelsize': font_size,
-             'axes.titlesize':font_size + 2,
-             'xtick.labelsize':font_size - 2,
-             'ytick.labelsize':font_size - 2,
-             'font.size':font_size - 2,
-             "axes.titlecolor": "black",
-             "axes.labelcolor": "black",
-             "xtick.color": "black",
-             "ytick.color": "black",
-             }
-    rcParams.update(params)
+def process_one_file(filepath, export_paths, figure_param, *, color_list=None, samples_list=None, font_size = 11):
+            
+    # SECURITY
+    if figure_param['chemin'] == 'heatmap' and figure_param['main_sample'] == 'all':
+        figure_param['main_sample'] = 'oldest'
 
     # OUVRIR LE FICHIER    
     QTQt_summary = read_csv(filepath, sep='chaineimpossible', engine='python', encoding='latin1')
@@ -59,7 +33,7 @@ def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, fo
     # test to see if their is additionnal informationnal files
     file_name, file_ext = path.splitext(filepath)
     test_path_percent_files = file_name + "_tto_fix" + file_ext #predicted envelope
-    if path.exists(test_path_percent_files):
+    if path.exists(test_path_percent_files) and figure_param['chemin']=='heatmap':
         QTQt_tto_fix = read_csv(test_path_percent_files, sep='chaineimpossible', engine='python', header=None)
     else:
         QTQt_tto_fix = "vide"
@@ -73,10 +47,7 @@ def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, fo
     data_inversion = RInversion()
 
     #get/load color dictionnary
-    if 'color_list' in globals() :
-        data_inversion.color_list, data_inversion.sample_list = parser.get_colorlist(QTQt_summary, tab_color)
-    else:
-        data_inversion.color_list, data_inversion.sample_list = parser.get_colorlist(QTQt_summary, tab_color)
+    data_inversion.color_list, data_inversion.samples_list = parser.get_samples(QTQt_summary, file_name, tab_color=color_list, tab_sample=samples_list)
     data_inversion.info_list = parser.get_inversion_info(QTQt_summary)
 
 
@@ -87,31 +58,39 @@ def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, fo
         data_inversion.tabl_grid_history, data_inversion.distrib_envelopp, data_inversion.grid_info = parser.extract_grid_history(QTQt_tto_fix)
     if not isinstance(QTQt_Hierachical, str):
         data_inversion.tab_init_resample, data_inversion.tab_resample = parser.extract_resample(QTQt_Hierachical)
-
+    
     #results
     data_inversion.tabl_constrain = parser.extract_constrain(QTQt_summary)
-    data_inversion.tabl_tT_pred = parser.extract_tT_pred(QTQt_summary)
-    data_inversion.tabl_tT_pred_vertical = parser.extract_tT_pred_vertical(QTQt_summary, data_inversion.sample_list)
+    data_inversion.tabl_tT_pred = parser.extract_tT_pred_samples(QTQt_summary, data_inversion.samples_list)
     data_inversion.tabl_He_like, data_inversion.tabl_He_post, data_inversion.tabl_He_expect = parser.extract_He_Ages(QTQt_summary)
     data_inversion.tabl_FT_like, data_inversion.tabl_FT_post, data_inversion.tabl_FT_expect = parser.extract_FT_Ages(QTQt_summary)
     data_inversion.tabl_LFT = parser.extract_FT_Length(QTQt_summary)
 
+    # handle detrital/vertical data
+    if figure_param["main_sample"] == "oldest":
+        figure_param["main_sample"] = data_inversion.samples_list.get_max_time_summary()
+    
 
     # update list info
     k = -1
     if not isinstance(QTQt_Hierachical, str):
-        for i in data_inversion.sample_list:
-            it_maxlike = data_inversion.tab_resample[i,1,:].argmax().item()
-            data_inversion.sample_list[i]['FT_kin'] = float(data_inversion.tab_resample[i,2,it_maxlike])
-            tab_eU_percent = data_inversion.tab_resample[i,3:,it_maxlike]
-
+        for sample in data_inversion.samples_list.list_summary_samples():
+            sample_index = sample.id_
+            
+            it_maxlike = data_inversion.tab_resample[sample_index,1,:].argmax().item()
+            sample.FT_kin_ = float(data_inversion.tab_resample[sample_index,2,it_maxlike])
+            tab_eU_percent = data_inversion.tab_resample[sample_index,3:,it_maxlike]
+            
             #test if there is He data
             if not tab_eU_percent.isnull().values[0] :
+                tab_tempo = []
                 k = k + 1
                 for j in range(len(tab_eU_percent)):
                     if not tab_eU_percent.isnull().values[j] :
                         tab_eU_mod = data_inversion.tabl_He_like[k,:,6]
-                        data_inversion.sample_list[i]['eU_' + str(j)] = float(tab_eU_mod[j].values) / (1+(float(tab_eU_percent[j].values)/100))
+                        tab_tempo.append(float(tab_eU_mod[j].values) / (1+(float(tab_eU_percent[j].values)/100)))
+                
+                sample.eU_tab_ = tab_tempo
 
     # CONTRUIRE LA FIGURE
     displayer_figure = figure(FigureClass=InverseFig)
@@ -121,20 +100,21 @@ def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, fo
     displayer_figure.plot_iteration(data_inversion.tabl_tT_history, data_inversion.info_list)
     displayer_figure.plot_pred_ages(data_inversion.tabl_He_like, data_inversion.tabl_He_post, data_inversion.tabl_He_expect,
                    data_inversion.tabl_FT_like, data_inversion.tabl_FT_post, data_inversion.tabl_FT_expect,
-                   data_inversion.color_list, model=figure_param['model'])
-    displayer_figure.plot_LFT(data_inversion.tabl_LFT, data_inversion.color_list, model=figure_param['model'])
+                   data_inversion.samples_list, model=figure_param['model'])
+    displayer_figure.plot_LFT(data_inversion.tabl_LFT, data_inversion.samples_list, model=figure_param['model'])
     if not isinstance(QTQt_tto_fix, str):
-        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_tT_pred_vertical, data_inversion.tabl_constrain, classement=figure_param['classement'], color=figure_param['hist_color'],
+        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_constrain, classement=figure_param['classement'], color=figure_param['hist_color'],
                       history=figure_param['chemin'], gradiant=figure_param['gradiant'], time_min=figure_param['time_min'], time_max=figure_param['time_max'], temp_min=figure_param['temp_min'], temp_max=figure_param['temp_max'],
-                      colormap=figure_param['colormap'], vertical_profile=figure_param['vertical_profile'], data_stat=data_inversion.tabl_grid_history, enveloppe=data_inversion.distrib_envelopp, grid_info = data_inversion.grid_info)
+                      colormap=figure_param['colormap'], predicted_path=figure_param['predicted_paths'],
+                      data_stat=data_inversion.tabl_grid_history, enveloppe=data_inversion.distrib_envelopp, grid_info = data_inversion.grid_info, main_sample = figure_param["main_sample"])
     else:
-        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_tT_pred_vertical, data_inversion.tabl_constrain, classement=figure_param['classement'], color=figure_param['hist_color'],
+        displayer_figure.plot_histoire(data_inversion.tabl_tT_history, data_inversion.tabl_tT_pred, data_inversion.tabl_constrain, classement=figure_param['classement'], color=figure_param['hist_color'],
                       history=figure_param['chemin'], gradiant=figure_param['gradiant'], time_min=figure_param['time_min'], time_max=figure_param['time_max'], temp_min=figure_param['temp_min'], temp_max=figure_param['temp_max'],
-                      colormap=figure_param['colormap'], vertical_profile=figure_param['vertical_profile'])
-    displayer_figure.plot_time_scale(data_inversion.tabl_tT_history, niveau=figure_param['niveau'], time_min=figure_param['time_min'], time_max=figure_param['time_max'], temp_min=figure_param['temp_min'], temp_max=figure_param['temp_max'])
+                      colormap=figure_param['colormap'], predicted_path=figure_param['predicted_paths'], main_sample = figure_param["main_sample"])
+    displayer_figure.plot_time_scale(niveau=figure_param['niveau'])
     displayer_figure.add_hist_information(data_inversion.info_list)
     displayer_figure.add_plotted_information(figure_param)
-    displayer_figure.add_samples(data_inversion.sample_list, data_inversion.color_list)
+    displayer_figure.add_samples(data_inversion.samples_list)
     displayer_figure.canvas.draw()
 
     # AFFICHER LA FIGURE SECONDAIRE
@@ -147,15 +127,15 @@ def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, fo
         
         resample_figure = figure(FigureClass=ResampleFig)
         resample_figure.update_size(num_graphs)
-        resample_figure.plot_resample(data_inversion.tab_init_resample, data_inversion.tab_resample, data_inversion.sample_list, data_inversion.color_list)
+        resample_figure.plot_resample(data_inversion.tab_init_resample, data_inversion.tab_resample, data_inversion.samples_list)
         resample_figure.canvas.draw()
-
+        
     # EXPORT FIGURE
     if figure_param['fig_format'] != '':
         #displayer_figure.canvas.setFixedWidth(1680)
         #displayer_figure.canvas.setFixedHeight(500)
-        displayer_figure.figure.savefig(export_paths[0], bbox_inches='tight')
         
+        displayer_figure.figure.savefig(export_paths[0], bbox_inches='tight')
         if not isinstance(QTQt_Hierachical, str):
             resample_figure.figure.savefig(export_paths[1], bbox_inches='tight')
         
@@ -163,7 +143,9 @@ def process_one_file(filepath, export_paths, figure_param, *, tab_color=None, fo
     if figure_param['tab_format'] != '':
         workers.export_age(data_inversion,filepath= export_paths[2])
         workers.export_length(data_inversion,filepath= export_paths[3])
-
+    
+    
+    return data_inversion.color_list, data_inversion.samples_list
 
 # %%  MAIN PROGRAMME IN CASE OF LOCAL EXECUTION (BUILT TO ALLOW ONECODE FUNCTION)
 if __name__ == "__main__":
@@ -171,6 +153,7 @@ if __name__ == "__main__":
     # LIST OF PLOTTING OPTION, EDITH IT AS YOU NEED
     figure_param = {
         
+        # EXPORT PARAMETERS
         # allow you to select output folder with navigation window (available only for gui displayer):
         'auto_save_path' : False, # True, False
         # put all exported files in a folder name after the inversion run:
@@ -181,36 +164,50 @@ if __name__ == "__main__":
         'fig_format': '', # '', ".png", ".pdf", ".svg",
         
         # t(T) paths display options :
-        'chemin' : 'all', # 'all', 'heatmap', 'simple'
+        #type of representation
+        'chemin' : 'simple', # 'no', 'all', 'heatmap', 'simple'
+        #color and order
         'hist_color' : "Likelihood", # "Posterior"
-        'colormap' : 'viridis_r', # 'cividis_r', 'jet', 'QTQt_old',...
+        'colormap' : 'viridis_r', # 'viridis_r', 'cividis_r', 'jet', 'QTQt_old',...
         'classement':'Likelihood', # 'Likelihood', "Posterior", "Iteration"
-        'vertical_profile' : "no", # "no", "Max Likelihood", "Max Posterior", "Expected"
+                
+        # multi sample parameters :
+        'main_sample' : 'oldest', # int: number of the main samples,  "oldest": plot the oldest one, "all": plot all detail about samples
         
-        # predicted results (ages and FT) represented :
+        # Prediction 
+        #predicted paths to show on t(T)
+        'predicted_paths' : ['Expected', 'Max Likelihood'], # list of the wanted predited plot, "Max Likelihood", "Max Posterior", "Expected", 'Max Mode'
+        #predicted results (ages and FT) represented :
         'model' : "Max Likelihood", #"Max Posterior", "Expected"
         
         # geological time scale :
         'niveau' :"Epoch", # "Eon", "Era", "Period", "Epoch", "Superepoch", "Age"
         
         # t(T) box parameters (use it to constrain the t(T) box) :
-        'gradiant' : 30, # in °/km
-        'time_min':-1, # '-1 : automatic
-        'time_max':0, # '0 : automatic
-        'temp_min':-1, # '-1 : automatic
-        'temp_max':0, # '0 : automatic
+        'gradiant' : 25, # in °/km
+        'time_min' : 0, # ' -1 : automatic
+        'time_max' : 510, # ' -1 : automatic
+        'temp_min' : 0, # ' -1 : automatic
+        'temp_max' : 210, # ' -1 : automatic
 
         }
             
     # LOAD FILES
     # if you have installed the gui version, you can use the following line
-    #filepaths = savers.get_file()
+    filepaths = savers.get_file()
     
     # otherwise enterte a list of paths to the different files to process (only the run output)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(current_dir)
-    filepaths = [parent_dir + '\examples\test.txt']
-
+    # current_dir = os.path.dirname(os.path.abspath(__file__))
+    # parent_dir = os.path.dirname(current_dir)
+    # filepaths = [parent_dir + '\examples\\test.txt']
+    
+    if figure_param['auto_save_path'] == False and (figure_param['tab_format'] != '' or figure_param['fig_format'] != '' ):
+        export_dir = savers.get_directory(filepath = filepaths[0])
+    else:
+        export_dir = ''
+    
+    
+    color_list, samples_list = None, None
     for file in filepaths:
         # init output files names
         if figure_param['fig_format'] != '' or figure_param['tab_format'] !='':
@@ -218,10 +215,13 @@ if __name__ == "__main__":
                                                                                    image_format=figure_param['fig_format'],
                                                                                    table_format=figure_param['tab_format'],
                                                                                    groupe=figure_param['grp_export'],
-                                                                                   autopath=figure_param['auto_save_path'])
+                                                                                   autopath=figure_param['auto_save_path'],
+                                                                                   folder=export_dir
+                                                                                   )
             export_paths=(inverse_fig,resample_fig,ages_table,lengths_table)
         else :
             export_paths = ()
-        process_one_file(file, export_paths, figure_param)
+        
+        color_list, samples_list = process_one_file(file, export_paths, figure_param, color_list=color_list, samples_list=samples_list)
 
 

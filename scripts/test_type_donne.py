@@ -7,8 +7,6 @@
 Ceci est un script temporaire.
 """
 
-#from dataclasses import dataclass
-import sys
 
 #for the Qt window
 try:
@@ -23,19 +21,14 @@ def get_file(*, racine=''):
     else:
         app = QApplication.instance()
 
-    if "win" in sys.platform:
-        filepath, _ = QFileDialog.getOpenFileNames(None, 'Select one or multiple QTQt output file(s)', racine, 'Fichiers texte (*.txt)')
-    else:
-        filepath, _ = QFileDialog.getOpenFileNames(None, 'Select one or multiple QTQt output file(s)', racine, 'Fichiers texte (*.txt)',  options=QFileDialog.Options() | QFileDialog.DontUseNativeDialog)
+    filepath, _ = QFileDialog.getOpenFileNames(None, 'Select one or multiple QTQt output file(s)', racine, 'Fichiers texte (*.txt)')
 
     return filepath
 
 
-
-
 class HeData:
     
-    def __init__(self):
+    def __init__(self, dict_info = None):
         # --- chemical and age ---
         self.He : float
         self.U: float
@@ -59,8 +52,10 @@ class HeData:
         self.D0: float
         self.Ea: float
         
-        self.model: str
-        self.geometry: str
+        self.model: int
+        self.geometry: int
+        
+        self.resample: []
         
         # --- custom model ---
         #sampling :
@@ -70,12 +65,23 @@ class HeData:
         
         self.eU: float
         self.eU_var: float
-            
-        # 3 row
-        # self.c0: float
-        # self.c1: float
-        # self.c2: float
-        # self.c3: List[float]
+        
+        # --- 3 row ---
+        self.last_row: [float]
+        
+    def set_age(self, valeur):
+        if valeur < 0: self.resample.append("age")
+        self.age = valeur
+    
+    def set_age_err(self, valeur):
+        if valeur < 0: self.resample.append("age_err")
+        self.age_err = valeur
+    
+    def set_eU_car(self, valeur):
+        if valeur > 0: self.resample.append("eU")
+        self.eU_var = valeur
+        
+        
     
 class FTData:
     
@@ -97,7 +103,6 @@ class FTData:
         
         self.compo_value: float 
         self.compo_error: float 
-        
         
         # --- model data ---
         self.model_anneal: int 
@@ -124,11 +129,12 @@ class SampleData:
         self.Z: float 
         
         # --- inversion parameters ---
-        self.tT_point: list[tuple[float, float]]
+        self.tT_constrain: list[tuple[float, float, float, float]]
         self.tT_present: tuple[float, float]
         
         # --- sample data ---
         self.FT = FTData()
+        self.He_models = int
         self.He: list[HeData] = []
 
 
@@ -185,11 +191,11 @@ def parse_qtqt_sample(path: str) -> SampleData:
         for j in range(tT_nb):
             i += 1
             tempo_line = list(map(float, lines[i].split()))
-            sample.tT_point.append([tempo_line[0],tempo_line[1]])
+            if len(tempo_line) == 2 :
+                sample.tT_present = (tempo_line[0],tempo_line[1])
+            else:
+                sample.tT_constrain.append([tempo_line[0],tempo_line[1],tempo_line[2],tempo_line[3]])
 
-    # i += 1
-    # tempo_line = list(map(float, lines[i].split()))
-    # sample.tT_present=[tempo_line[0],tempo_line[1]]
 
     #FT info 2
     i += 1
@@ -226,7 +232,7 @@ def parse_qtqt_sample(path: str) -> SampleData:
     i += 1
     He_nb = int(lines[i][0])
     i += 1
-    He_model = int(lines[i][0])
+    sample.He_models = int(lines[i][0])
 
     for j in range(He_nb):
         i += 1
@@ -256,13 +262,13 @@ def parse_qtqt_sample(path: str) -> SampleData:
         #ajouter le test sur le model pour savoir la 3eme ligne
         if abs(tempo_He.model) >= 4 :
             i += 1
-            tempo_add = list(map(float, lines[i].split()))
+            tempo_He.last_row = list(map(float, lines[i].split()))
         
         sample.He.append(tempo_He)
         
     return sample
 
-
-chemin = get_file()[0]
-data_all = parse_qtqt_sample(chemin)
+if __name__ == "__main__" :
+    chemin = get_file()[0]
+    data_all = parse_qtqt_sample(chemin)
 

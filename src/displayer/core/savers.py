@@ -8,8 +8,7 @@ Created on Mon Oct 13 17:13:11 2025
 # IMPORT LIBRARY
 
 #dicuss with the machine
-import sys
-import os
+from pathlib import Path
 
 #for the Qt window
 as_Qt = True
@@ -29,10 +28,7 @@ def get_file(*, racine=''):
     else:
         app = QApplication.instance()
 
-    #if "win" in sys.platform:
     filepath, _ = QFileDialog.getOpenFileNames(None, 'Select one or multiple QTQt output file(s)', racine, 'Fichiers texte (*.txt)')
-    # else:
-    #     filepath, _ = QFileDialog.getOpenFileNames(None, 'Select one or multiple QTQt output file(s)', racine, 'Fichiers texte (*.txt)',  options=QFileDialog.Options() | QFileDialog.DontUseNativeDialog)
 
     return filepath
 
@@ -43,93 +39,79 @@ def get_path(*, name='', extension='txt'):
         app = QApplication.instance()
     default_name = name + "." + extension
     
-    #if "win" in sys.platform:
     path, _ = QFileDialog.getSaveFileName(None, 'Save As', default_name, 'All Files (*)')
-    # else:
-    #     path, _ = QFileDialog.getSaveFileName(None, 'Save As', default_name, 'All Files (*)', options=QFileDialog.Options() | QFileDialog.DontUseNativeDialog)
 
     return path
 
-def get_directory(*, racine=''):
+def get_directory(*, filepath=None):
     if not QApplication.instance():
         app = QApplication([])
     else:
         app = QApplication.instance()
-
+    
+    
+    
     # Si un chemin racine est fourni, l'utiliser comme point de départ
-    if racine:
-        directory = QFileDialog.getExistingDirectory(None, 'Select a folder', racine)
+    if filepath:
+        filepath = Path(filepath)
+        folder = filepath.parent
+        directory = QFileDialog.getExistingDirectory(None, 'Select a folder', str(folder))
     else:
         directory = QFileDialog.getExistingDirectory(None, 'Select a folder')
 
     return directory
 
-def get_output_filepath(filepath, *, image_format = ".png", table_format = '.xlsx', groupe=False, autopath=True):
+def get_output_filepath(filepath: str, *,
+                            image_format: str = ".png",
+                            table_format: str = '.xlsx',
+                            groupe: bool = False,
+                            autopath: bool = True,
+                            folder: str = ''
+                        )-> tuple[str, str, str, str]:
+    """
+    Génère les chemins de sortie pour les fichiers de sortie (images et tables).
+
+    Args:
+        filepath: Chemin du fichier d'entrée.
+        image_format: Extension des images (par défaut ".png").
+        table_format: Extension des tables (par défaut ".xlsx").
+        groupe: Si True, crée un sous-dossier avec le nom du fichier.
+        autopath: Si False, utilise un chemin personnalisé (non implémenté ici).
+        folder: '', alow to pass already set folder for racine
+
+    Returns:
+        Tuple contenant les chemins des fichiers de sortie :
+        (inverse_fig, resample_fig, ages_table, lengths_table)
+    """
+
+    filepath = Path(filepath)
+    file_name = filepath.stem
+
+    if not autopath :
+        if as_Qt and folder == '' :
+            folder = Path(get_directory(filepath=filepath))  # Conversion en str si nécessaire
+        elif folder == '' :
+            folder = filepath.parent
+        else:
+            folder = Path(folder)
+    else :
+        folder = filepath.parent
+
     
-    folder = os.path.dirname(filepath)
-    file_name = os.path.basename(filepath)
-    
-    file_name = filepath.replace(" ","_")
-    file_name = file_name.replace(".txt",'')
-    
-    if not autopath and not as_Qt :
-        folder = get_directory(racine=folder)
-    
-    if groupe :
-        folder_grp = os.path.join(folder,file_name)
-        if not os.path.exists(folder_grp): os.makedirs(folder_grp)
-        inverse_fig = os.path.join(folder_grp, "inversion" + image_format)
-        resample_fig = os.path.join(folder_grp, "resample" + image_format)
-        
-        ages_table = os.path.join(folder_grp, "ages" + table_format)
-        lengths_table = os.path.join(folder_grp, "lengths" + table_format)
-    
+    if groupe:
+        folder_grp = folder / file_name
+        folder_grp.mkdir(exist_ok=True)  # Crée le dossier s'il n'existe pas
+
+        inverse_fig = folder_grp / f"inversion{image_format}"
+        resample_fig = folder_grp / f"resample{image_format}"
+        ages_table = folder_grp / f"ages{table_format}"
+        lengths_table = folder_grp / f"lengths{table_format}"
     else:
-        inverse_fig = os.path.join(folder, file_name + "_inversion" + image_format)
-        resample_fig = os.path.join(folder, file_name + "_resample" + image_format)
-        
-        ages_table = os.path.join(folder, file_name + "_ages" + table_format)
-        lengths_table = os.path.join(folder, file_name + "_lengths" + table_format)
+        inverse_fig = folder / f"{file_name}_inversion{image_format}"
+        resample_fig = folder / f"{file_name}_resample{image_format}"
+        ages_table = folder / f"{file_name}_ages{table_format}"
+        lengths_table = folder / f"{file_name}_lengths{table_format}"
 
-    return inverse_fig, resample_fig, ages_table, lengths_table
+    return str(inverse_fig), str(resample_fig), str(ages_table), str(lengths_table)
     
 
-# def get_QTQt_files(file_path, file_name, file_type):
-    
-#     if file_type == "summary":
-#         file_ext = ".txt"
-        
-#         test_path_percent_files = os.path.join(file_path, file_name + "_tto_fix" + file_ext) #predicted envelope
-#         if path.exists(test_path_percent_files):
-#             QTQt_tto_fix = read_csv(test_path_percent_files, sep='chaineimpossible', engine='python', header=None)
-#         else:
-#             QTQt_tto_fix = "vide"
-#         test_resample_files =  os.path.join(file_path, file_name + "_Hierachical" + file_ext)#kinetic resample
-#         if path.exists(test_resample_files):
-#             QTQt_Hierachical = read_csv(test_resample_files, sep='chaineimpossible', engine='python', header=None)
-#         else:
-#             QTQt_Hierachical = "vide"
-        
-#         return QTQt_tto_fix, QTQt_Hierachical
-         
-#     elif file_type == "sample" :
-        
-#         if os.path.exists(file_name):
-#              #connecter au parseur de fichier pour connaitre les paramètres de modélisation
-#         else:
-#             #retourner une valeur vide
-        
-
-# def save_QTQt_fig (self, filepath, , *,autopath=False):
-#     if autopath == False:
-#         file_name = filepath.replace(" ","_")
-#         test = file_name.split('/')
-#         file_name = test[len(test)-1]
-#         file_name = file_name.replace(".txt",'')
-#         complete_path = get_path(name= file_name, extension=file_format)
-#         complete_path = str(complete_path)
-#         complete_path = complete_path.replace("<_io.TextIOWrapper name='",'').replace("' mode='w' encoding='cp1252'>", '')
-#     else:
-#         filepath = filepath.replace(".txt","")
-#         complete_path = str(filepath + file_format)
-#     self.figure.savefig(complete_path, format=file_format, bbox_inches='tight')

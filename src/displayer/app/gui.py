@@ -24,3 +24,6 @@ def main():
     main_controller.show_hide_wind("main",True)
     
     app.exec()
+
+if __name__ == "__main__":
+    main()

@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
         inversion_param = {}
         
         inversion_param['auto_save_path'] = self.combobox_savedirect.itemData(self.combobox_savedirect.currentIndex())
-        inversion_param['grp_export'] = False
+        inversion_param['grp_export'] = self.combobox_savegrp.itemData(self.combobox_savegrp.currentIndex())
         inversion_param['tab_format'] = '.xlsx'
         inversion_param['fig_format'] = self.combobox_saveformat.itemData(self.combobox_saveformat.currentIndex())
 
@@ -95,24 +95,26 @@ class MainWindow(QMainWindow):
         
         inversion_param['niveau'] = self.combobox_timescale.currentText()
         
-        inversion_param['vertical_profile'] = self.combobox_vertical.currentText()
+        inversion_param['main_sample'] = self.combobox_samples.currentText()
         
         if self.editbox_minTime.text() != '':
             inversion_param['time_min']=float(self.editbox_minTime.text())
         else:
-            inversion_param['time_min']=-1
+            inversion_param['time_min']=0
         if self.editbox_maxTime.text() != '':
             inversion_param['time_max']=float(self.editbox_maxTime.text())
         else:
-            inversion_param['time_max']=0
+            inversion_param['time_max']=-1
         if self.editbox_minTemp.text() != '':
             inversion_param['temp_min']=float(self.editbox_minTemp.text())
         else:
-            inversion_param['temp_min']=-1
+            inversion_param['temp_min']=0
         if self.editbox_maxTemp.text() != '':
             inversion_param['temp_max']=float(self.editbox_maxTemp.text())
         else:
-            inversion_param['temp_max']=0
+            inversion_param['temp_max']=-1
+            
+        inversion_param['predicted_paths']=['Expected', 'Max Likelihood', 'Max Posterior', 'Max Mode']
         
         return inversion_param
 
@@ -153,7 +155,6 @@ class MainWindow(QMainWindow):
 
     def action_button_color(self):
         self.controller.action_colors_picker()
-        
 
     def action_help(self, graph_nom):
         self.controller.action_help(graph_nom)
@@ -176,49 +177,65 @@ class MainWindow(QMainWindow):
         self.button_color = QPushButton("Select sample(s) color(s)")
         self.button_color.clicked.connect(self.action_button_color)
 
+
     def combobox(self):
-        self.combobox_saveformat = QComboBox()
-        self.combobox_saveformat.addItem("no save","")
-        self.combobox_saveformat.addItem("png",".png")
-        self.combobox_saveformat.addItem("pdf",".pdf")
-        self.combobox_saveformat.addItem("svg",".svg")
-        
-        self.combobox_savedirect = QComboBox()
-        self.combobox_savedirect.addItem("automatic",True)
-        self.combobox_savedirect.addItem("manual",False)
-        
-        self.combobox_envelop = QComboBox()
-        self.combobox_envelop.addItem("all t(T) paths", "all")
-        self.combobox_envelop.addItem("t(T) paths percentage", "heatmap")
-        self.combobox_envelop.addItem("96% envelop", "simple")
-        self.combobox_envelop.currentTextChanged.connect(self.action_replot_history)
-        
-        self.combobox_order = QComboBox()
-        self.combobox_order.addItems(["Likelihood", "Posterior", "Iteration"])
-        self.combobox_order.currentTextChanged.connect(self.action_replot_history)
-        
-        self.combobox_color = QComboBox()
-        self.combobox_color.addItems(["Likelihood", "Posterior"])
-        self.combobox_color.currentTextChanged.connect(self.action_replot_history)
-        
-        self.combobox_vertical = QComboBox()
-        self.combobox_vertical.addItems(["no", "Max Likelihood", "Max Posterior", "Expected"])
-        self.combobox_vertical.currentTextChanged.connect(self.action_replot_history)
-        
-        self.combobox_colormap = QComboBox()
-        self.combobox_colormap.addItem("mid value", "viridis_r")
-        self.combobox_colormap.addItem("extrem value", "cividis_r")
-        self.combobox_colormap.addItem("continue", "jet")
-        self.combobox_colormap.addItem("QTQt", "QTQt_old")
-        self.combobox_colormap.currentTextChanged.connect(self.action_replot_history)
-        
-        self.combobox_prediction = QComboBox()
-        self.combobox_prediction.addItems(["Max Likelihood", "Max Posterior", "Expected"])
-        self.combobox_prediction.currentTextChanged.connect(self.action_combo_prediction)
-        
-        self.combobox_timescale = QComboBox()
-        self.combobox_timescale.addItems(["Epoch", "Eon", "Era", "Period", "Superepoch", "Age"])
-        self.combobox_timescale.currentTextChanged.connect(self.action_combo_timescale)
+        # Dictionnaire pour stocker les configurations des QComboBox
+        combobox_configs = {
+            "saveformat": {
+                "items": [("no save", ""), ("png", ".png"), ("pdf", ".pdf"), ("svg", ".svg")],
+                "signal": None
+            },
+            "savegrp": {
+                "items": [("in folder", True), ("as files", False)],
+                "signal": None
+            },
+            "savedirect": {
+                "items": [("automatic", True), ("manual", False)],
+                "signal": None
+            },
+            "envelop": {
+                "items": [("all t(T) paths", "all"), ("t(T) paths percentage", "heatmap"), ("96% envelop", "simple")],
+                "signal": self.action_replot_history
+            },
+            "order": {
+                "items": ["Likelihood", "Posterior", "Iteration"],
+                "signal": self.action_replot_history
+            },
+            "color": {
+                "items": ["Likelihood", "Posterior"],
+                "signal": self.action_replot_history
+            },
+            "samples": {
+                "items": ["oldest", "all"],
+                "signal": self.action_replot_history
+            },
+            "colormap": {
+                "items": [("mid value", "viridis_r"), ("extrem value", "cividis_r"), ("continue", "jet"), ("QTQt", "QTQt_old")],
+                "signal": self.action_replot_history
+            },
+            "prediction": {
+                "items": ["Max Likelihood", "Max Posterior", "Expected"],
+                "signal": self.action_combo_prediction
+            },
+            "timescale": {
+                "items": ["Epoch", "Eon", "Era", "Period", "Superepoch", "Age"],
+                "signal": self.action_combo_timescale
+            }
+        }
+    
+        # Création des QComboBox et ajout des items
+        for name, config in combobox_configs.items():
+            combobox = QComboBox()
+            for item in config["items"]:
+                if isinstance(item, tuple):
+                    combobox.addItem(*item)
+                else:
+                    combobox.addItem(item)
+            setattr(self, f"combobox_{name}", combobox)
+    
+            # Connexion du signal si spécifié
+            if config["signal"] is not None:
+                combobox.currentTextChanged.connect(config["signal"])
 
     def editbox(self):
         self.editbox_gradient = QLineEdit()
@@ -230,18 +247,20 @@ class MainWindow(QMainWindow):
         self.editbox_maxTemp = QLineEdit(); self.editbox_maxTemp.setMaximumWidth(width)
 
     def textbox(self):
-        font_size = 9
+        font_size = 10
         font_header = QFont("Times", font_size + 2, QFont.Bold)
         font_info = QFont("Times", font_size, italic=True)
+        
         self.header_1 = QLabel("Saving options :"); self.header_1.setFont(font_header)
         self.header_2 = QLabel("t(T) paths options :"); self.header_2.setFont(font_header)
         self.header_3 = QLabel("Other options :"); self.header_3.setFont(font_header)
         self.header_4 = QLabel("Select and process file(s):"); self.header_4.setFont(font_header)
         self.info_10 = QLabel("formats :"); self.info_10.setFont(font_info)
         self.info_11 = QLabel("destination :"); self.info_11.setFont(font_info)
+        self.info_12 = QLabel("grp results :"); self.info_12.setFont(font_info)
         self.info_20 = QLabel("color range on :"); self.info_20.setFont(font_info)
         self.info_21 = QLabel("order (opt.) :"); self.info_21.setFont(font_info)
-        self.info_212 = QLabel("vertical profile :"); self.info_212.setFont(font_info)
+        self.info_212 = QLabel("multi samples :"); self.info_212.setFont(font_info)
         self.info_22 = QLabel("colormap :"); self.info_22.setFont(font_info)
         self.info_23 = QLabel("paths :"); self.info_23.setFont(font_info)
         self.info_3 = QLabel("Results model :"); self.info_3.setFont(font_info)
@@ -274,6 +293,11 @@ class MainWindow(QMainWindow):
         split_11.addWidget(self.info_11)
         split_11.addWidget(self.combobox_savedirect)
         self.action_layout.addLayout(split_11)
+        
+        split_12 = QHBoxLayout()
+        split_12.addWidget(self.info_12)
+        split_12.addWidget(self.combobox_savegrp)
+        self.action_layout.addLayout(split_12)
 
         self.action_layout.addWidget(self.header_2)
         split_20 = QHBoxLayout()
@@ -288,7 +312,7 @@ class MainWindow(QMainWindow):
         
         split_212 = QHBoxLayout()
         split_212.addWidget(self.info_212)
-        split_212.addWidget(self.combobox_vertical)
+        split_212.addWidget(self.combobox_samples)
         self.action_layout.addLayout(split_212)
         
         split_22 = QHBoxLayout()
@@ -357,11 +381,11 @@ class ResampleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        self.setGeometry(100, 100, 900, 500)  # Position et taille de la fenêtre
+        self.setGeometry(100, 100, 1000, 300)  # Position et taille de la fenêtre
         self.setWindowTitle("Results of resampling kinetic parameters")
         
-        # Création de la figure de base 
-        self.resample_figure = figure(FigureClass=ResampleFig)
+        # Création de la figure de base
+        self.resample_figure = ResampleFig(None, num_graphs=2, font_size = 7)
         self.canvas = FigureCanvasQTAgg(self.resample_figure)
         self.addToolBar(NavigationToolbar2QT(self.canvas)) # "", self" ? useless ?
         
@@ -372,17 +396,20 @@ class ResampleWindow(QMainWindow):
 
         # Création de la zone de défilement
         self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
+        #self.scroll_area.setWidgetResizable(True)
 
         # Définition d'une taille minimum pour le canvas pour garantir le défilement
-        self.canvas.setMinimumSize(850, 400)  # Largeur fixe, hauteur augmentée
+        self.canvas.setMinimumSize(1000, 300)  # Largeur fixe, hauteur augmentée
 
         # Ajout du canvas à la zone de défilement
         self.scroll_area.setWidget(self.canvas)
 
         # Ajout de la zone de défilement au layout principal
         layout.addWidget(self.scroll_area)
-    
+   
+    def resize_window(self, chart_nb):
+        self.setGeometry(100, 100, 1000, 300 * chart_nb)
+        self.canvas.setMinimumSize(1000, 300 * chart_nb)
    
     def closeEvent(self, event):
         self.stop.emit("resample")
