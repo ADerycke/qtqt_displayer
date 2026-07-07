@@ -186,9 +186,9 @@ if __name__ == "__main__":
         # t(T) box parameters (use it to constrain the t(T) box) :
         'gradiant' : 25, # in °/km
         'time_min' : 0, # ' -1 : automatic
-        'time_max' : 510, # ' -1 : automatic
+        'time_max' : -1, # ' -1 : automatic
         'temp_min' : 0, # ' -1 : automatic
-        'temp_max' : 210, # ' -1 : automatic
+        'temp_max' : -1, # ' -1 : automatic
 
         }
             

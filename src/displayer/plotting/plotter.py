@@ -2,13 +2,8 @@
 
 #basic librairy
 import numpy
-#☺from xarray import DataArray
-#from ast import literal_eval
 
 #for plotting 
-#from matplotlib.gridspec import GridSpec
-#from matplotlib.pyplot import figure
-
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
@@ -1021,87 +1016,4 @@ def layout_informations(subplot):
     subplot.spines['left'].set_visible(False)
     
     subplot.patch.set_alpha(0.0)
-
-
-# === FIG : plot_resample === no more use, move to custom fig
-
-# def plot_resample(self, data_init, data_resample, sample_list):
-    
-#     num_sample = data_init.shape[0] 
-#     linestyles = ['-', '--', '-.', ':', (0, (5, 1)), (0, (3, 5, 1, 5)), (0, (5, 5)), (0, (3, 1, 1, 1)), 
-#                   (0, (1, 1)), (0, (5, 10))]
-
-#     #premier graph likelihood
-#     graph_pos = 0
-#     x = data_resample[0, 0, :].astype(int)
-#     y = data_resample[0, 1, :].astype(float)
-#     self.axs[graph_pos].plot(x, y, linestyle='-', color='red', linewidth = 0.5)
-#     self.axs[graph_pos].set_ylabel('likelihood')
-
-#     #deuxieme graph FT kin
-#     graph_pos = 1
-#     for i in range(num_sample):
-#         x = data_resample[i, 0, :].astype(int)
-#         y = data_resample[i, 2, :].astype(float)
-#         self.axs[graph_pos].plot(x, y, linestyle="-", color=sample_list.get_color_by_id(i))
-#     self.axs[graph_pos].set_ylabel('FT kinetic\nparameters')
-    
-#     # Boucle sur chaque ligne de data_init
-#     graph_pos = 1
-#     for i in range(num_sample):
-#         tempo_nb_he = int(data_init[i, 5])
-        
-#         if tempo_nb_he > 0 :
-#             graph_pos = 1 + graph_pos
-#             # Boucle sur le nombre de courbes à tracer pour ce subplot
-#             tab_eU_tempo = sample_list.get_tabeU_by_id(i)
-            
-#             for j in range(tempo_nb_he):
-#                 x = data_resample[i, 0, :].astype(int)
-#                 y = data_resample[i, 3 + j, :].astype(float)
-#                 y_bis = tab_eU_tempo[j] * (1+(y/100))
-
-#                 # Tracer la courbe dans le subplot correspondant à l'index i
-#                 self.axs[graph_pos].plot(x, y_bis, linestyle=linestyles[j % len(linestyles)], color=sample_list.get_color_by_id(i))
-
-#             # Ajouter des labels et une légende à chaque subplot
-#             self.axs[graph_pos].set_ylabel(sample_list.get_name_by_id(i) + '\neU [ppm]')
-    
-#     num_graphs = graph_pos + 1
-#     for i in range(num_graphs):
-#         # Masquer les axes x de tous les subplots sauf le premier et le dernier
-#         self.axs[i].spines['bottom'].set_visible(False)
-#         self.axs[i].spines['top'].set_visible(False)
-#         self.axs[i].xaxis.set_tick_params(which='major', direction='inout', length=5, width=1, 
-#                                  color='black', labelcolor='black', top=True, bottom=True)
-#         self.axs[i].xaxis.set_tick_params(which='minor', direction='in', length=2, width=0.5, 
-#                                  color='black', labelcolor='black', top=True, bottom=True)
-#         self.axs[i].yaxis.set_tick_params(which='major', direction='inout', length=5, width=1, 
-#                                  color='black', labelcolor='black', left=True, right=True)
-#         self.axs[i].yaxis.set_tick_params(which='minor', direction='in', length=2, width=0.5, 
-#                                  color='black', labelcolor='black', left=True, right=True)
-        
-#         if i == 0 : 
-#             self.axs[i].spines['bottom'].set_visible(True)
-#             self.axs[i].spines['top'].set_visible(True) 
-#             self.axs[i].set_xlabel('iteration')
-#             self.axs[i].xaxis.set_label_position('top')
-#         elif i == 1:
-#             self.axs[i].get_xaxis().set_visible(True)
-#             self.axs[i].xaxis.set_label_position('top')
-#             self.axs[i].spines['top'].set_visible(True)
-#             self.axs[i].tick_params(axis='x', labeltop=True, labelbottom=False)
-#             self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
-#         elif i == num_graphs - 1:  # Le dernier subplot
-#             self.axs[i].get_xaxis().set_visible(True)
-#             self.axs[i].xaxis.set_label_position('bottom')
-#             self.axs[i].spines['bottom'].set_visible(True)
-#             self.axs[i].set_xlabel('iteration')
-#             self.axs[i].tick_params(axis='x', labeltop=False, labelbottom=True)
-#             self.axs[i].xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
-    
-#     # Ajuster l'espacement entre les subplots
-#     #self.fig.tight_layout()
-
-
 

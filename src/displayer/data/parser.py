@@ -79,8 +79,11 @@ def get_inversion_info(data):
     info_2 = info_2.split(' ')
     
     info_loc2 = data[data[data.columns[0]].str.contains('Max allowable dTdt')]
-    info_3 = data[info_loc2.index[0] : info_loc2.index[0]+1]
-    info_3 = info_3.squeeze()
+    if len(info_loc2) != 0 :
+        info_3 = data[info_loc2.index[0] : info_loc2.index[0]+1]
+        info_3 = info_3.squeeze()
+    else :
+        info_3 = 'Max allowable dTdt = 1000.000000 No reheating = 0 Rate Tolerance 0.000000'
     info_3 = info_3.replace(' =', '_=').replace('  ', ' ')
     info_3 = info_3.split(' ')
     

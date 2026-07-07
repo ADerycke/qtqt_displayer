@@ -24,7 +24,7 @@ class InverseFig(Figure):
         super().__init__(figsize=(17, 6))
         
         self.set_chart_parameters()
-        self.tight_layout()
+        #self.tight_layout()
         self.subplots_adjust(left=0.04, right=0.96, bottom=0.1, top=0.9)
         
         #figure generale
@@ -122,7 +122,7 @@ class ResampleFig(Figure):
         super().__init__(figsize=(10, num_graphs * 3))
         
         self.set_chart_parameters()
-        self.tight_layout()
+        #self.tight_layout()
         
         self.num_graphs = num_graphs
         self.font_size = font_size
@@ -160,7 +160,7 @@ class ResampleFig(Figure):
         self.clf()
         
         self.set_chart_parameters()
-        self.tight_layout()
+        #self.tight_layout()
         
         self.set_size_inches(10, self.num_graphs * 3, forward=True)
         self.axs = self.subplots(self.num_graphs, 1, sharex=True)
