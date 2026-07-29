@@ -41,14 +41,17 @@ def plot_iteration(plot_list, data_tT, info_list):
     
     
     plot_like.set_xlabel('Exploration info.' + ' (' + utils.val_to_time_str(info_list['time total']) +')')
-        
+    plot_like.xaxis.set_label_position('top') 
+    
     y_min, y_max = plot_post.get_ylim()
     x_min, x_max = plot_post.get_xlim()
     
     plot_like.xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
 
     plot_like.set_ylabel('likelihood')
+    plot_like.yaxis.set_label_position('right')
     plot_post.set_ylabel('posterior')
+    plot_post.yaxis.set_label_position('right') 
     
 def layout_iteration(plot_list):
     
