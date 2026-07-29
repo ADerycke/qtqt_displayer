@@ -19,6 +19,9 @@ It provides both a graphical user interface (GUI) and a command-line mode to exp
 
 ## VERSION - UP DATE
 
+* 1.0.3.1 : 
+    - downscale option for the of the t(T) path representation ('all-downscale'), set at 10 000 path by default (statistical sampling)
+    
 * 1.0.3 : 
     - gui : update the gui from the 0.4.4 to the 1.0.3
     - bug correction - on the process_one_file() run

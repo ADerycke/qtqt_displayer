@@ -5,6 +5,9 @@ Created on Mon Oct 13 16:52:19 2025
 @author: Alexis
 """
 
+from lttb import downsample
+import numpy as np
+
 def get_scale(total):
     total=int(total)
     if total >= 1000:
@@ -51,3 +54,19 @@ def val_to_time_str(valeur):
     
     return text
 
+
+def tT_downscale(data_tT, dim="iteration", n_out=10000, y_index=1, x_index=3):
+    """
+    Réduit un DataArray xarray suivant une dimension en utilisant
+    les indices LTTB calculés sur une série de référence.
+    """
+
+    # Série de référence
+    ref = data_tT.isel(Y=y_index, X=x_index).values
+
+    x = np.arange(len(ref))
+    reduced = downsample(np.column_stack((x, ref)), n_out=n_out)
+
+    indices = reduced[:, 0].astype(int)
+
+    return data_tT.isel({dim: indices})

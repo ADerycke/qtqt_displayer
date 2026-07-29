@@ -155,7 +155,7 @@ if __name__ == "__main__":
         
         # EXPORT PARAMETERS
         # allow you to select output folder with navigation window (available only for gui displayer):
-        'auto_save_path' : False, # True, False
+        'auto_save_path' : True, # True, False
         # put all exported files in a folder name after the inversion run:
         'grp_export' : False, # True, False
         # format for the exported data (empty = no export) :
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         
         # t(T) paths display options :
         #type of representation
-        'chemin' : 'simple', # 'no', 'all', 'heatmap', 'simple'
+        'chemin' : 'all-downscale', # 'no', 'all', 'all-downscale', 'heatmap', 'simple'
         #color and order
         'hist_color' : "Likelihood", # "Posterior"
         'colormap' : 'viridis_r', # 'viridis_r', 'cividis_r', 'jet', 'QTQt_old',...
@@ -185,10 +185,10 @@ if __name__ == "__main__":
         
         # t(T) box parameters (use it to constrain the t(T) box) :
         'gradiant' : 25, # in °/km
-        'time_min' : 0, # ' -1 : automatic
-        'time_max' : -1, # ' -1 : automatic
-        'temp_min' : 0, # ' -1 : automatic
-        'temp_max' : -1, # ' -1 : automatic
+        'time_min' : 0, # set -1 for automatic
+        'time_max' : -1, # set -1 for automatic
+        'temp_min' : 0, # set -1 for automatic
+        'temp_max' : -1, # set -1 for automatic
 
         }
             

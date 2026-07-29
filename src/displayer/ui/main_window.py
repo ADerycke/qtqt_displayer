@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
                 "signal": None
             },
             "envelop": {
-                "items": [("all t(T) paths", "all"), ("t(T) paths percentage", "heatmap"), ("96% envelop", "simple")],
+                "items": [("all t(T) paths", "all"), ("fast all t(T) paths", "all-downscale"), ("t(T) paths percentage", "heatmap"), ("96% envelop", "simple")],
                 "signal": self.action_replot_history
             },
             "order": {

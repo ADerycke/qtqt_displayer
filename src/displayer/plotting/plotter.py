@@ -364,7 +364,6 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
     y_min=temp_min
     
     # == Filter the non-used t(T) paths for the predicted vertical
-    # path to show - maintenant on garde les matchs
     filters = []
     if "Max Likelihood" in predicted_path:
         filter_like = numpy.where(data_Chemin_pred.loc[:,1,2] == "Max Like")[0]
@@ -389,7 +388,7 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
         filter_sample = numpy.where([sample == main_sample for sample in data_Chemin_pred.loc[:, 0, 2].values])[0]
         sample_filter = filter_sample
     
-    # Application des filtres OU pour les premiers filtres (on garde les matchs)
+    # Application des filtres OU pour les premiers filtres
     if len(filters) > 0:
         combined_filter = filters[0]
         for filter in filters[1:]:
@@ -397,7 +396,7 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
     else:
         combined_filter = numpy.array([], dtype=int)
     
-    # Application du filtre ET pour le sample (on garde les matchs)
+    # Application du filtre ET pour le sample
     if str(main_sample).isdigit() :
         combined_filter = numpy.intersect1d(combined_filter, sample_filter)  # Intersection (ET)
     data_Chemin_pred_filtered = data_Chemin_pred.sel(Chemin=data_Chemin_pred.Chemin.isin(combined_filter))
@@ -478,31 +477,35 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
             
         
     # == Order t(T) paths if  and color
-    if history == 'all' :
+    if 'all' in history :
         if 'Like' in color:
             a=1
         elif 'Post' in color:
             a=2
-        data_tT_trie = data_tT.sortby(data_tT[:,a,3])
-        data_color = data_tT_trie[:,a,3]
         if 'Iter' in classement:
             a=0
-        data_tT_trie = data_tT.sortby(data_tT[:,a,3])
-        
+            
+        if 'downscale' in history:
+            data_tT_downscale = utils.tT_downscale(data_tT, y_index=a)
+            data_tT_trie = data_tT_downscale.sortby(data_tT[:,a,3])
+        else:
+            data_tT_trie = data_tT.sortby(data_tT[:,a,3])
+
+        data_color = data_tT_trie[:,a,3]
         # simlificate the data_array for plotting decouper 
         data_tT_plot = data_tT_trie.drop_sel(X=[2,3])
         
 
     #init min and max :
     if x_max == -1 :
-        if history == 'all':
+        if 'all' in history :
             x_max = data_tT_plot[:,:,0].max()*1.05
         elif history == 'heatmap':
             x_max = max_X_heatmap*1.05
         else:
             x_max = data_Chemin_pred_filtered_clean[:,:,0].max()*1.05
     if y_max == -1 :
-        if history == 'all':
+        if 'all' in history :
             y_max = data_tT_plot[:,:,1].max()*1.05
         elif history == 'heatmap':
             y_max = max_Y_heatmap*1.05
@@ -517,7 +520,7 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
         
     # == Paths and legend layout
     #paths 
-    if history=='all':
+    if 'all' in history:
         if 'Like' in color:
             text_legend_1 = 't(T) path likelihood'
         elif 'Post' in color:
@@ -569,7 +572,7 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
 
 
     # == Plot exploration t(T) paths 
-    if history=='all': #all paths
+    if 'all' in history: #all paths
         if isinstance(tqdm_stream, str): #case for no interface
             t_T_path_graph = LineCollection(data_tT_plot,
                                             cmap=cmap,
@@ -838,7 +841,7 @@ def plot_time_scale(plot_timescale, *, niveau='Epoch', time_min=-1, time_max=-1)
     # plot_timescale.set_xlim(x_max, x_min)
     plot_timescale.xaxis.set_major_locator(MultipleLocator(major))
     plot_timescale.xaxis.set_minor_locator(MultipleLocator(minor))
-    plot_timescale.set_xlabel('Time [Ma]')
+    #plot_timescale.set_xlabel('Time [Ma]')
     
 def layout_time_scale(plot_timescale):
     plot_timescale.set_xlabel('Time [Ma]')
