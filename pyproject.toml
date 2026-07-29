@@ -23,7 +23,8 @@ dependencies = [
   "pyrolite",
   "scipy",
   "tqdm",
-  "xarray"
+  "xarray",
+  "lttb"
 ]
 
 [project.optional-dependencies]
