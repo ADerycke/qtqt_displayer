@@ -841,7 +841,8 @@ def plot_time_scale(plot_timescale, *, niveau='Epoch', time_min=-1, time_max=-1)
     # plot_timescale.set_xlim(x_max, x_min)
     plot_timescale.xaxis.set_major_locator(MultipleLocator(major))
     plot_timescale.xaxis.set_minor_locator(MultipleLocator(minor))
-    #plot_timescale.set_xlabel('Time [Ma]')
+    plot_timescale.set_xlabel('Time [Ma]')
+    plot_timescale.xaxis.set_label_position('top')
     
 def layout_time_scale(plot_timescale):
     plot_timescale.set_xlabel('Time [Ma]')
