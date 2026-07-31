@@ -165,7 +165,7 @@ if __name__ == "__main__":
         
         # t(T) paths display options :
         #type of representation
-        'chemin' : 'all-downscale', # 'no', 'all', 'all-downscale', 'heatmap', 'simple'
+        'chemin' : 'all', # 'no', 'all', 'all-downscale', 'heatmap', 'simple'
         #color and order
         'hist_color' : "Likelihood", # "Posterior"
         'colormap' : 'viridis_r', # 'viridis_r', 'cividis_r', 'jet', 'QTQt_old',...

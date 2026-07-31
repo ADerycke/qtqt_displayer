@@ -38,31 +38,20 @@ def plot_iteration(plot_list, data_tT, info_list):
     plot_post.plot(x, y_bis, color='blue', linewidth = 0.5)
 
     # Defining the label
+    total_time = utils.val_to_time_str(info_list['time total'])
+    layout_iteration(plot_list, total_time = total_time)
     
     
-    plot_like.set_xlabel('Exploration info.' + ' (' + utils.val_to_time_str(info_list['time total']) +')')
-    plot_like.xaxis.set_label_position('top') 
-    
-    y_min, y_max = plot_post.get_ylim()
-    x_min, x_max = plot_post.get_xlim()
-    
-    plot_like.xaxis.set_major_formatter(FuncFormatter(lambda x, p: '{:,}'.format(int(x)).replace(",", " ")))
-
-    plot_like.set_ylabel('likelihood')
-    plot_like.yaxis.set_label_position('right')
-    plot_post.set_ylabel('posterior')
-    plot_post.yaxis.set_label_position('right') 
-    
-def layout_iteration(plot_list):
+def layout_iteration(plot_list, *, total_time = 'total time'):
     
     # == detail graph ==
     plot_like = plot_list[0]
     plot_post = plot_list[1]
     
-    plot_like.set_xlabel('Exploration info.' + ' (total time)')
+    plot_like.set_xlabel('Exploration info.' + ' (' + total_time +')')
+    plot_like.xaxis.set_label_position('top') 
     
     plot_like.set_ylabel('likelihood', style='italic', color= 'red')
-    plot_like.xaxis.set_label_position('top') 
     plot_like.yaxis.set_label_position('right') 
     plot_like.tick_params(labelbottom=False, labeltop=True, labelleft=True, labelright=False)
     plot_like.tick_params(axis='x', labelrotation=20)
@@ -179,23 +168,9 @@ def plot_pred_ages(plot_age,
     plot_age.set_ylim(bottom=y_min, top=y_max)
 
     major, minor = utils.get_scale(x_max - x_min)
-    plot_age.xaxis.set_major_locator(MultipleLocator(major))
-    plot_age.xaxis.set_minor_locator(MultipleLocator(minor))
-    plot_age.yaxis.set_major_locator(MultipleLocator(major))
-    plot_age.yaxis.set_minor_locator(MultipleLocator(minor))
+    layout_pred_ages(plot_age, tick_pos=(major,minor))
     
-    plot_age.axline((0, 0), slope=1, linewidth=0.5, color='black', alpha = 0.75, linestyle='--')  
-    
-    legend_elements = [Line2D([0], [0], marker='o', label='AHe', markeredgecolor='gray',markerfacecolor='w', color='w', markersize=5),
-                       Line2D([0], [0], marker='D', label='ZHe', markeredgecolor='gray',markerfacecolor='w', color='w', markersize=5),
-                       Line2D([0], [0], marker='v', label='He', markeredgecolor='gray',markerfacecolor='w', color='w', markersize=5),
-                       Line2D([0], [0], marker='s', label='FT', markeredgecolor='gray',markerfacecolor='w', color='w', markersize=5)
-                      ]
-    plot_age.legend(handles=legend_elements, ncol=2, bbox_to_anchor=(0, 1), fontsize='x-small')
-    plot_age.set_xlabel('Obs. ages [Ma]')
-    plot_age.set_ylabel('Pred. ages [Ma]')
-    
-def layout_pred_ages(plot_age):
+def layout_pred_ages(plot_age, *, tick_pos = (-1,-1)):
     
     plot_age.axline((0, 0), slope=1, linewidth=0.5, color='black', alpha = 0.75, linestyle='--')  
     
@@ -218,6 +193,13 @@ def layout_pred_ages(plot_age):
     plot_age.yaxis.set_tick_params(which='major' ,direction='inout',length=5 ,width=1 ,color='black' ,labelcolor='black' ,left=True ,right=True  )
     plot_age.yaxis.set_tick_params(which='minor' ,direction='in',length=2 ,width=0.5 ,color='black' ,labelcolor='black' ,left=True ,right=True  )
     plot_age.yaxis.set_major_formatter('{x:.0f}')
+    
+    if tick_pos[0] > 0 :
+        major, minor = tick_pos
+        plot_age.xaxis.set_major_locator(MultipleLocator(major))
+        plot_age.xaxis.set_minor_locator(MultipleLocator(minor))
+        plot_age.yaxis.set_major_locator(MultipleLocator(major))
+        plot_age.yaxis.set_minor_locator(MultipleLocator(minor))
 
 
 # === FIG : plot_LFT(data_LFT, data_FT) === note : bar position on QTQt are not the same ansd can note be reproduce simply....
@@ -268,24 +250,10 @@ def plot_LFT(plot_list, data_LFT, sample_list, *, model='Like'):
 
     y_min, y_max = plot_FT.get_ylim()
     major, minor = utils.get_scale((y_max - y_min))
-    plot_FT.yaxis.set_major_locator(MultipleLocator(major))
-    plot_FT.yaxis.set_minor_locator(MultipleLocator(minor))
-    plot_FT.xaxis.set_major_locator(MultipleLocator(5))
-    plot_FT.xaxis.set_minor_locator(MultipleLocator(1))
-    
-    plot_FT_bis.set_xlim(7, 18)
-    plot_FT_bis.set_ylim(ymin=0) 
-    plot_FT.set_xlim(6, 19)
-    plot_FT.set_xlabel('Tracks length [µm]')
-    plot_FT.set_ylabel('nb of tracks')
-    
-    legend_elements = [Line2D([0], [0], marker='s', label='obs.', markeredgecolor='gray',markerfacecolor='w', color='w', markersize=5),
-                       Line2D([], [], color='gray', label="pred.", linestyle='solid', linewidth= 1.5),
-                      ]
-    plot_FT.legend(handles=legend_elements, ncol=1, bbox_to_anchor=(0, 1), fontsize='x-small')
+    layout_LFT(plot_list, tick_pos = (major,minor))
 
     
-def layout_LFT(plot_list):
+def layout_LFT(plot_list, *, tick_pos = (-1,-1)):
     
     # == detail graph ==
     plot_FT = plot_list[0]
@@ -319,7 +287,13 @@ def layout_LFT(plot_list):
     plot_FT.xaxis.set_tick_params(which='minor' ,direction='out',length=2 ,width=0.5 ,color='black', labelcolor='black' ,bottom=True ,top=False  )
     plot_FT.yaxis.set_tick_params(which='major' ,direction='inout',length=5 ,width=1 ,color='black', labelcolor='black' ,left=True ,right=False  )
     plot_FT.yaxis.set_tick_params(which='minor' ,direction='out',length=2 ,width=0.5 ,color='black', labelcolor='black' ,left=True ,right=False  )
-
+    
+    if tick_pos[0] > 0 :
+        major, minor = tick_pos
+        plot_FT.yaxis.set_major_locator(MultipleLocator(major))
+        plot_FT.yaxis.set_minor_locator(MultipleLocator(minor))
+        plot_FT.xaxis.set_major_locator(MultipleLocator(5))
+        plot_FT.xaxis.set_minor_locator(MultipleLocator(1))
 
 
 # === FIG : plot_histoire(data_tT_plot, data_Chemin_plot, data_Chemin_vertical, data_constrain, *, classement='Max like', gradiant=30, surface_t=10, time_min=-1, time_max=0, temp_min=-10, temp_max=0, constante=[0], vertical_profile=False):
@@ -694,71 +668,24 @@ def plot_histoire(plot_list, data_tT, data_Chemin_pred, data_constrain, *,
     #axes min-max
     plot_history.set_xlim(x_max, x_min)
     plot_history.set_ylim(y_max, y_min)
-    
     plot_history_bis.set_xlim(x_max, x_min)
     plot_history_bis.set_ylim((y_max-surface_t)/gradiant, (y_min-surface_t)/gradiant)
     
-    #axes name
-    plot_history.set_ylabel('Temperature [°C]')
-    
-    plot_history_bis.set_ylabel('Depth [km] (' + str(gradiant) + '°/km)' )
-    plot_history_bis.spines['left'].set_position(('outward',50))
-    
     #axes markers
     time_major, time_minor = utils.get_scale(x_max - x_min)
-    tempe_major, tempe_minor = utils.get_scale(y_max - y_min)   
-    plot_history.xaxis.set_major_locator(MultipleLocator(time_major))
-    plot_history.xaxis.set_minor_locator(MultipleLocator(time_minor))
-    plot_history.yaxis.set_major_locator(MultipleLocator(tempe_major))
-    plot_history.yaxis.set_minor_locator(MultipleLocator(tempe_minor))
-    
+    tempe_major, tempe_minor = utils.get_scale(y_max - y_min)
     depth_major, depth_minor = utils.get_scale((y_max-surface_t)/gradiant - (y_min-surface_t)/gradiant)
-    plot_history_bis.yaxis.set_major_locator(MultipleLocator(depth_major))
-    plot_history_bis.yaxis.set_minor_locator(MultipleLocator(depth_minor))
     
-    #layers position
-    plot_history.patch.set_alpha(0)
-    plot_history.patch.set_visible(False)
-    legend_elements = [Patch(facecolor='white', edgecolor='grey',alpha= 1, linestyle= '--', linewidth = 0.5, label="exploration box"),
-                       Patch(facecolor='white', edgecolor='black',alpha= 1, linestyle= '-', linewidth = 1, label="constrain box"),
-                       Line2D([], [], color='black', linestyle='solid', linewidth= 3, label="expected path"),
-                      ]
-    if history != 'heatmap':
-        pos_y = 0.27
-        legend_elements.append(Line2D([], [], color='blue', linestyle='dashed', linewidth= 1.5, label="max likelihood path"))
-        legend_elements.append(Line2D([], [], color='grey', linestyle='dashed', linewidth= 1.5, label="max posterior path"))
-        legend_elements.append(Line2D([], [], color='black', linestyle='dotted', linewidth= 1.5, label="96% envelop (all paths)"))   
-    else:
-        pos_y = 0.27
-        legend_elements.append(Line2D([], [], color='white', linestyle='solid', linewidth= 1.5, label="68% envelopp"))
-        legend_elements.append(Line2D([], [], color='gray', linestyle='solid', linewidth= 1.5, label="96% envelopp"))
-        legend_elements.append(Line2D([], [], color='black', linestyle='solid', linewidth= 1.5, label="99% envelopp"))
-    plot_history.legend(handles=legend_elements, ncol=1, fontsize='x-small', bbox_to_anchor=(0.80, pos_y))
+    layout_history(plot_list, gradiant=gradiant, tick_pos=(time_major, time_minor, tempe_major, tempe_minor, depth_major, depth_minor), history = history)
+
     
-    
-def layout_history(plot_list):
+def layout_history(plot_list, *, gradiant=30, tick_pos = (-1,-1,-1,-1,-1,-1), history = "none"):
     
     # == detail graph ==
     custom_fig = plot_list[0]
     plot_history = plot_list[1]
     plot_history_bis = plot_list[2]
     plot_hist_legen = plot_list[3]
-    
-    # == init legend ==
-    plot_hist_legen.set_visible(False)
-    # legende_1 = custom_fig.colorbar(t_T_path_graph, cax=plot_hist_legen, orientation="vertical", aspect = 40, label=text_legend_1)
-    # legende_1.ax.tick_params(labelsize='x-small', labelrotation=0)
-    
-    
-    # === add the légende ===  
-    legend_elements = [Patch(facecolor='white', edgecolor='grey',alpha= 1, linestyle= '--', linewidth = 0.5, label="exploration box"),
-                       Patch(facecolor='white', edgecolor='black',alpha= 1, linestyle= '-', linewidth = 1, label="constrain box"),
-                       Line2D([], [], color='black', linestyle='solid', linewidth= 3, label="expected path"),
-                       Line2D([], [], color='blue', linestyle='dashed', linewidth= 1.5, label="max likelihood path"),
-                       Line2D([], [], color='grey', linestyle='dashed', linewidth= 1.5, label="max posterior path"),
-                       Line2D([], [], color='black', linestyle='dotted', linewidth= 1.5, label="96% envelop (all paths)"),
-                      ]
-    plot_history.legend(handles=legend_elements, ncol=1, fontsize='x-small', bbox_to_anchor=(0.82, 0.27))
 
     #Defining the label
     plot_history.set_ylabel('Temperature [°C]')
@@ -766,7 +693,7 @@ def layout_history(plot_list):
     plot_history.yaxis.set_label_position('left') 
     plot_history.tick_params(labelbottom=False, labeltop=False, labelleft=True, labelright=False, bottom=False, top=True, left=True, right=False)
     
-    plot_history_bis.set_ylabel('Depth [km] (30°/km)' )
+    plot_history_bis.set_ylabel('Depth [km] (' + str(gradiant) + '°/km)' )
     plot_history_bis.yaxis.label.set_color('darkgreen')
     plot_history_bis.yaxis.set_label_position('left')    
     plot_history_bis.tick_params(labelleft=True, labelright=False,left=True, right=False)
@@ -807,10 +734,43 @@ def layout_history(plot_list):
                                            left=True ,right=False  )
     plot_history_bis.yaxis.set_major_formatter('{x:.0f}')
     
-    #change the z position to get the temperature on the Qt graph
+    # echange the z position to get the temperature on the Qt graph
     plot_history.patch.set_alpha(0)
     plot_history.set_zorder(plot_history_bis.get_zorder()+1)
     plot_history.patch.set_visible(False)
+    
+    #tick position
+    if tick_pos[0] > 0 :
+        time_major, time_minor, tempe_major, tempe_minor, depth_major, depth_minor = tick_pos
+        plot_history.xaxis.set_major_locator(MultipleLocator(time_major))
+        plot_history.xaxis.set_minor_locator(MultipleLocator(time_minor))
+        plot_history.yaxis.set_major_locator(MultipleLocator(tempe_major))
+        plot_history.yaxis.set_minor_locator(MultipleLocator(tempe_minor))
+        plot_history_bis.yaxis.set_major_locator(MultipleLocator(depth_major))
+        plot_history_bis.yaxis.set_minor_locator(MultipleLocator(depth_minor))
+    
+        
+    # == init legend ==
+    plot_history.patch.set_alpha(0)
+    #plot_hist_legen.set_visible(False)
+
+    legend_elements = [Patch(facecolor='white', edgecolor='grey',alpha= 1, linestyle= '--', linewidth = 0.5, label="exploration box"),
+                       Patch(facecolor='white', edgecolor='black',alpha= 1, linestyle= '-', linewidth = 1, label="constrain box"),
+                       Line2D([], [], color='black', linestyle='solid', linewidth= 3, label="expected path"),
+                      ]
+
+    if history != 'heatmap':
+        pos_y = 0.27
+        legend_elements.append(Line2D([], [], color='blue', linestyle='dashed', linewidth= 1.5, label="max likelihood path"))
+        legend_elements.append(Line2D([], [], color='grey', linestyle='dashed', linewidth= 1.5, label="max posterior path"))
+        legend_elements.append(Line2D([], [], color='black', linestyle='dotted', linewidth= 1.5, label="96% envelop (all paths)"))   
+    else:
+        pos_y = 0.27
+        legend_elements.append(Line2D([], [], color='white', linestyle='solid', linewidth= 1.5, label="68% envelopp"))
+        legend_elements.append(Line2D([], [], color='gray', linestyle='solid', linewidth= 1.5, label="96% envelopp"))
+        legend_elements.append(Line2D([], [], color='black', linestyle='solid', linewidth= 1.5, label="99% envelopp"))
+    
+    plot_history.legend(handles=legend_elements, ncol=1, fontsize='x-small', bbox_to_anchor=(0.80, pos_y))
     
 
 # === FIG : plot_time_scale(*, niveau='Epoch', data_tT, **,time_min=-1, time_max=0, temp_min=-1, temp_max=0): ===
@@ -841,21 +801,26 @@ def plot_time_scale(plot_timescale, *, niveau='Epoch', time_min=-1, time_max=-1)
     
     major, minor = utils.get_scale(x_max - x_min)
     
-    # plot_timescale.set_xlim(x_max, x_min)
-    plot_timescale.xaxis.set_major_locator(MultipleLocator(major))
-    plot_timescale.xaxis.set_minor_locator(MultipleLocator(minor))
+    layout_time_scale(plot_timescale, tick_pos=(major, minor))
+    
+   
+def layout_time_scale(plot_timescale, *, tick_pos = (-1,-1)):
+    
     plot_timescale.set_xlabel('Time [Ma]')
     plot_timescale.xaxis.set_label_position('top')
     
-def layout_time_scale(plot_timescale):
-    plot_timescale.set_xlabel('Time [Ma]')
-    plot_timescale.xaxis.set_label_position('top')
     plot_timescale.tick_params(labelbottom=False, labeltop=True, labelleft=False, labelright=False, bottom=True, top=True, left=False, right=False)
+    
     plot_timescale.spines['left'].set_visible(False)
     plot_timescale.xaxis.set_tick_params(which='major' ,direction='inout',length=5 ,width=1 ,color='black', labelcolor='black' ,bottom=True ,top=True  )
     plot_timescale.xaxis.set_tick_params(which='minor' ,direction='out',length=2 ,width=0.5 ,color='black', labelcolor='black' ,bottom=True ,top=True  )
+    
     plot_timescale.xaxis.set_major_formatter('{x:.0f}')
-
+    
+    if tick_pos[0] > 0 :
+        major, minor = tick_pos
+        plot_timescale.xaxis.set_major_locator(MultipleLocator(major))
+        plot_timescale.xaxis.set_minor_locator(MultipleLocator(minor))
 
 
 # === FIG : plot_info(info_list)
