@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt
 
 from matplotlib.pyplot import figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -30,8 +31,8 @@ class MainWindow(QMainWindow):
         self.widget_creation()
         widget = QWidget()
         window_layout = QHBoxLayout(widget)
-        window_layout.addLayout(self.action_layout)
-        window_layout.addWidget(self.canvas)
+        window_layout.addWidget(self.action_scroll, 0)
+        window_layout.addWidget(self.canvas, 1)
         self.setCentralWidget(widget)
 
         # == Controller
@@ -43,12 +44,12 @@ class MainWindow(QMainWindow):
         # get screen size to handle small screen of zoom
         
         
-        user_screen = self.main_application.primaryScreen().availableGeometry()
+        user_screen = self.controller.main_application.primaryScreen().availableGeometry()
         
         # Maximum : 90% de la largeur et 90% de la hauteur de l'écran
         self.resize(
                     min(1875, int(user_screen.width() * 0.8)),
-                    min(500, int(user_screen.height() * 0.8))
+                    min(300, int(user_screen.height() * 0.8))
                     )
         
         #self.canvas.resize(1680, 500)
@@ -260,8 +261,13 @@ class MainWindow(QMainWindow):
 
     def textbox(self):
         font_size = 10
-        font_header = QFont("Times", font_size + 2, QFont.Bold)
-        font_info = QFont("Times", font_size, italic=True)
+        font_header = QFont()  # Utilise la police par défaut du système
+        font_header.setPointSize(font_size + 2)
+        font_header.setBold(True)
+        
+        font_info = QFont()
+        font_info.setPointSize(font_size)
+        font_info.setItalic(True)
         
         self.header_1 = QLabel("Saving options :"); self.header_1.setFont(font_header)
         self.header_2 = QLabel("t(T) paths options :"); self.header_2.setFont(font_header)
@@ -381,6 +387,17 @@ class MainWindow(QMainWindow):
 
         self.action_layout.addWidget(self.header_4)
         self.action_layout.addWidget(self.button_process)
+        
+        # Widget contenant toutes tes actions
+        action_widget = QWidget()
+        action_widget.setLayout(self.action_layout)
+        
+        # Zone scrollable
+        self.action_scroll = QScrollArea()
+        self.action_scroll.setWidgetResizable(True)
+        self.action_scroll.setWidget(action_widget)
+        self.action_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    
 
     def closeEvent(self, event):
         self.stop.emit("main")
