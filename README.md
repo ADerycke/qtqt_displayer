@@ -19,6 +19,9 @@ It provides both a graphical user interface (GUI) and a command-line mode to exp
 
 ## VERSION - UP DATE
 
+* 1.0.3.3 : 
+    - bug correction for MacOS
+
 * 1.0.3.2 : 
     - downscale option for the of the t(T) path representation ('all-downscale'), set at 10 000 path by default (statistical sampling)
     

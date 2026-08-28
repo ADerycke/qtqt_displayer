@@ -62,6 +62,7 @@ class InverseFig(Figure):
         self.init_layout()
 
     def set_chart_parameters(self, *, font_size = 11):
+
         params = {
                  'legend.title_fontsize': font_size + 2,
                  'legend.fontsize': font_size,
@@ -69,7 +70,12 @@ class InverseFig(Figure):
                  'axes.titlesize':font_size + 2,
                  'xtick.labelsize':font_size - 2,
                  'ytick.labelsize':font_size - 2,
+                 
                  'font.size':font_size - 2,
+                 'font.family':'sans-serif',
+                 'font.sans-serif':'DejaVu Sans',
+                 'font.serif' :'DejaVu Serif',
+                 
                  "axes.titlecolor": "black",
                  "axes.labelcolor": "black",
                  "xtick.color": "black",

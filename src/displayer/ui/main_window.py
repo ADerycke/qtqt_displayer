@@ -39,8 +39,20 @@ class MainWindow(QMainWindow):
 
         # == Configuration fenêtre principale
         self.setWindowTitle("QTQt displayer")
-        self.canvas.resize(1680, 500)
-        self.resize(1875, 500)
+        
+        # get screen size to handle small screen of zoom
+        
+        
+        user_screen = self.main_application.primaryScreen().availableGeometry()
+        
+        # Maximum : 90% de la largeur et 90% de la hauteur de l'écran
+        self.resize(
+                    min(1875, int(user_screen.width() * 0.8)),
+                    min(500, int(user_screen.height() * 0.8))
+                    )
+        
+        #self.canvas.resize(1680, 500)
+        #self.resize(1875, 500)
 
     # --------------------------
     # == Figure et menus
